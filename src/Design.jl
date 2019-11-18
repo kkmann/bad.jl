@@ -53,18 +53,36 @@ function probability(x1::Int, x2::Int, design::Design, p::T) where {T<:Real}
     else
         nn  = n(design, x1)
         nn2 = n2(design, x1)
-        return !(0 <= x2 <= nn2) ? 0 : p^(x1 + x2)*(1 - p)^(nn - x1 - x2)*dbinom(BigInt(x1), BigInt(n1(design)), p)*dbinom(BigInt(x2), BigInt(nn2), p)
+        return !(0 <= x2 <= nn2) ? 0 : p^(x1 + x2)*(1 - p)^(nn - x1 - x2)*dbinom(x1, n1(design), p)*dbinom(x2, nn2, p)
     end
 end
+probability(x1::Int, x2::Int, design::Design, prior::Prior) = integrate(prior, probability.(x1, x2, design, prior.pivots))
 
 function probability(x1::Int, design::Design, p::T) where {T<:Real}
     if !valid(design, x1)
         return 0.
     else
-        return dbinom(BigInt(x1), BigInt(n1(design)), p)
+        return dbinom(x1, n1(design), p)
     end
 end
+probability(x1::Int, design::Design, prior::Prior) = integrate(prior, probability.(x1, design, prior.pivots))
 
+function probability(event::Symbol, design::Design, p)
+    if event == :efficacy
+        return power(design, p)
+    end
+    if event == :futility
+        return 1 - power(design, p)
+    end
+    x1 = collect(0:n1(design))
+    if event == :early_efficacy
+        return sum(dbinom(x1 .== Efficacy(), n1(design), p))
+    end
+    if event == :early_futility
+        return sum(dbinom(x1 .== Futility(), n1(design), p))
+    end
+end
+probability(event::Symbol, design::Design, prior::Prior) = integrate(prior, probability.(event, design, prior.pivots))
 
 
 function power(x1::Int, design::Design, p::T) where {T<:Real}
@@ -80,12 +98,12 @@ function power(x1::Int, design::Design, p::T) where {T<:Real}
 end
 power(design::Design, p::T) where {T<:Real} = sum(probability.(collect(0:n1(design)), design, p) .* power.(collect(0:n1(design)), design, p))
 
-function expected_power(design::Design, prior::Prior; mrv::T = 0.) where {T<:Real}
+function power(design::Design, prior::Prior; mrv::T = 0.) where {T<:Real}
     cprior = condition(prior, low = mrv)
     return integrate(cprior, power.(design, cprior.pivots) )
 end
 
-function expected_power(x1::Int, design::Design, prior::Prior; mrv::T = 0.) where {T<:Real}
+function power(x1::Int, design::Design, prior::Prior; mrv::T = 0.) where {T<:Real}
     !valid(design, x1) ? error("invalid x1") : nothing
     cposterior = condition(posterior(prior, x1, n1(design)), low = mrv)
     return integrate(cposterior, power.(x1, design, cposterior.pivots) )
