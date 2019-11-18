@@ -68,6 +68,7 @@ end
 
 
 function power(design::Design, x1::Int, p::T) where {T<:Real}
+    !valid(design, x1) ? error("invalid x1") : nothing
     cc  = c(design, x1)
     nn2 = n2(design, x1)
     if isa(cc, Efficacy)
@@ -80,27 +81,20 @@ function power(design::Design, x1::Int, p::T) where {T<:Real}
 end
 power(design::Design, p::T) where {T<:Real} = sum(probability.(design, collect(0:n1(design)), p) .* power.(design, collect(0:n1(design)), p))
 
-
-
-function expected_power(design::Design, x1::Int, prior::Function; mcrv::Real = mcrv(parameters(design))
-) where {T<:Integer}
-
-  checkx1(x1, design)
-  z   = QuadGK.quadgk(
-      p -> prior(p),  # f(p)
-      mcrv,           # p_min
-      1,              # p_max
-      atol    = 0.001  # tolerance
-  )[1]
-  res = QuadGK.quadgk(
-      p -> prior(p)*power(design, x1, p)/z, # f(p)
-      mcrv,         # p_min
-      1,             # p_max
-      atol    = 0.001 # tolerance
-  )[1]
-  return min(1, max(0, res)) # guarantee bounds!
-
+function expected_power(design::Design, prior::Prior; mrv::T = 0.) where {T<:Real}
+    cprior = condition(prior, low = mrv)
+    res, prec = quadgk(p -> cprior.pdf(p) .* power.(design, p), cprior.low, cprior.high)
+    return res
 end
+
+function expected_power(design::Design, x1::Int, prior::Prior; mrv::T = 0.) where {T<:Real}
+    !valid(design, x1) ? error("invalid x1") : nothing
+    cprior = condition(prior, low = mrv)
+    p, ω   = gauss_legendre_25(cprior.low, cprior.high)
+    return sum( cprior.pdf.(p) .* power.(design, p) .* ω )
+end
+
+
 #
 #
 # """
