@@ -1,3 +1,3 @@
-using Test
+using Test, bad
 
-@test 1 == 1
+include("test_Design.jl")
