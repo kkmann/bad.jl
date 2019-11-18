@@ -12,7 +12,7 @@ mutable struct Design
         any(n .< (length(n) - 1)) ? error("n must always be larger than n1") : nothing
         length(n) != length(c) ? error("n and c must be of equal length") : nothing
         new(n, c)
-      end
+    end
 end
 
 """
@@ -39,40 +39,14 @@ Base.show(io::IO, design::Design) = print("Design")
 Base.iterate(design::Design, state = 0) = state > 0 ? nothing : (design, state + 1)
 Base.length(design::Design) = 1
 
-"""
-    n(design::Design, x1::Int)
-    n1(design::Design)
-
-Return vector of final sample sizes.
-"""
 n(design::Design, x1::Int) = valid(design, x1) ? design.n[x1 + 1] : error("0 <= x1 <= n1 violated")
 n1(design::Design) = length(design.n) - 1
 n2(design::Design, x1::Int) = n(design, x1) - n1(design)
 
-"""
-    c(design::Design, x1::Int)
-    c(design::Design, x1::Vector{Int})
-
-Return critical value for `x1`.
-"""
 c(design::Design, x1::Int) = valid(design, x1) ? design.c[x1 + 1] : error("0 <= x1 <= n1 violated")
 
 
 
-
-"""
-    pdf{T1<:Integer, T2<:Real}(design::Design, x1::T1, x2::T1, p::T2)
-
-Probability density function of ``(x1, x2)`` responses in stage one and two,
-respectively, under `design` given response rate ``p``.
-# Parameters
-| Parameter    | Description |
-| -----------: | :---------- |
-| design       | a Design |
-| x1           | number of stage-one responses |
-| x2           | number of stage-two responses |
-| p            | response probability |
-"""
 function probability(design::Design, x1::Int, x2::Int, p::T) where {T<:Real}
     if !valid(design, x1)
         return 0.
@@ -92,18 +66,7 @@ function probability(design::Design, x1::Int, p::T) where {T<:Real}
 end
 
 
-"""
-    power(design::Design, x1::T1, p::T2) where {T1<:Integer, T2<:Real}
 
-conditional power of a design for a given response rate ``p`` and
-the observed number of stage-one responses `x1`.
-# Parameters
-| Parameter    | Description |
-| -----------: | :---------- |
-| design       | a [`Design`](@ref) |
-| p            | response probability |
-| x1           | number of stage-one responses |
-"""
 function power(design::Design, x1::Int, p::T) where {T<:Real}
     cc  = c(design, x1)
     nn2 = n2(design, x1)
@@ -117,41 +80,27 @@ function power(design::Design, x1::Int, p::T) where {T<:Real}
 end
 power(design::Design, p::T) where {T<:Real} = sum(probability.(design, collect(0:n1(design)), p) .* power.(design, collect(0:n1(design)), p))
 
-#
-#
-# """
-#     expectedpower(
-#       design::Design, x1::T, prior::Function; mcrv::Real = mcrv(parameters(design))
-#     ) where {T<:Integer}
-# Compute the conditional expected power of a design given `x1`.
-# # Parameters
-# | Parameter    | Description |
-# | -----------: | :---------- |
-# | design       | a Design |
-# | x1           | stage one number of responses |
-# | prior        | prior function prior(p) for response probability p |
-# | mcrv         | minimal clinically relevant value for expected power calculation |
-# """
-# function expectedpower(
-#     design::Design, x1::T, prior::Function; mcrv::Real = mcrv(parameters(design))
-# ) where {T<:Integer}
-#
-#   checkx1(x1, design)
-#   z   = QuadGK.quadgk(
-#       p -> prior(p),  # f(p)
-#       mcrv,           # p_min
-#       1,              # p_max
-#       atol    = 0.001  # tolerance
-#   )[1]
-#   res = QuadGK.quadgk(
-#       p -> prior(p)*power(design, x1, p)/z, # f(p)
-#       mcrv,         # p_min
-#       1,             # p_max
-#       atol    = 0.001 # tolerance
-#   )[1]
-#   return min(1, max(0, res)) # guarantee bounds!
-#
-# end
+
+
+function expected_power(design::Design, x1::Int, prior::Function; mcrv::Real = mcrv(parameters(design))
+) where {T<:Integer}
+
+  checkx1(x1, design)
+  z   = QuadGK.quadgk(
+      p -> prior(p),  # f(p)
+      mcrv,           # p_min
+      1,              # p_max
+      atol    = 0.001  # tolerance
+  )[1]
+  res = QuadGK.quadgk(
+      p -> prior(p)*power(design, x1, p)/z, # f(p)
+      mcrv,         # p_min
+      1,             # p_max
+      atol    = 0.001 # tolerance
+  )[1]
+  return min(1, max(0, res)) # guarantee bounds!
+
+end
 #
 #
 # """
