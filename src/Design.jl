@@ -45,8 +45,9 @@ Base.length(design::Design) = 1
 
 Return vector of final sample sizes.
 """
-n(design::Design, x1::Int) = (x1 < 0) | (x1 > n1(design)) ? error("0 <= x1 <= n1 violated") : design.n[x1 + 1]
+n(design::Design, x1::Int) = valid(design, x1) ? design.n[x1 + 1] : error("0 <= x1 <= n1 violated")
 n1(design::Design) = length(design.n) - 1
+n2(design::Design, x1::Int) = n(design, x1) - n1(design)
 
 """
     c(design::Design, x1::Int)
@@ -54,45 +55,35 @@ n1(design::Design) = length(design.n) - 1
 
 Return critical value for `x1`.
 """
-c(design::Design, x1::Int) =  (x1 < 0) | (x1 > n1(design)) ? error("0 <= x1 <= n1 violated") : design.c[x1 + 1]
+c(design::Design, x1::Int) = valid(design, x1) ? design.c[x1 + 1] : error("0 <= x1 <= n1 violated")
 
 
 
-#
-# """
-#     pdf{T1<:Integer, T2<:Real}(design::Design, x1::T1, x2::T1, p::T2)
-# Probability density function of ``(x1, x2)`` responses in stage one and two,
-# respectively, under `design` given response rate ``p``.
-# # Parameters
-# | Parameter    | Description |
-# | -----------: | :---------- |
-# | design       | a Design |
-# | x1           | number of stage-one responses |
-# | x2           | number of stage-two responses |
-# | p            | response probability |
-# """
-# function pdf(
-#   design::Design,
-#   x1::T1, x2::T1, p::T2
-# ) where {T1<:Integer, T2<:Real}
-#
-#   @checkprob p
-#   try
-#     checkx1x2(x1, x2, design)
-#   catch
-#     return 0.0
-#   end
-#   n1 = interimsamplesize(design)
-#   n  = samplesize(design, x1)
-#   try
-#     return p^(x1 + x2)*(1 - p)^(n - x1 - x2)*binomial(n1, x1)*binomial(n - n1, x2) # is 0 if impossible
-#   catch
-#     return p^(x1 + x2)*(1 - p)^(n - x1 - x2)*binomial(BigInt(n1), BigInt(x1))*binomial(BigInt(n - n1), BigInt(x2)) # is 0 if impossible
-#   end
-#
-# end
-#
-#
+
+"""
+    pdf{T1<:Integer, T2<:Real}(design::Design, x1::T1, x2::T1, p::T2)
+
+Probability density function of ``(x1, x2)`` responses in stage one and two,
+respectively, under `design` given response rate ``p``.
+# Parameters
+| Parameter    | Description |
+| -----------: | :---------- |
+| design       | a Design |
+| x1           | number of stage-one responses |
+| x2           | number of stage-two responses |
+| p            | response probability |
+"""
+function probability(design::Design, x1::Int, x2::Int, p::T) where {T<:Real}
+    if !valid(design, x1)
+        return 0.
+    else
+        nn  = n(design, x1)
+        nn2 = n2(design, x1)
+        return !(0 <= x2 <= nn2) ? 0 : p^(x1 + x2)*(1 - p)^(nn - x1 - x2)*dbinom(BigInt(x1), BigInt(n1(design)), p)*dbinom(BigInt(x2), BigInt(nn2), p)
+    end
+end
+
+
 # """
 #     power(design::Design, x1::T1, p::T2) where {T1<:Integer, T2<:Real}
 # conditional power of a design for a given response rate ``p`` and
@@ -427,15 +418,7 @@ c(design::Design, x1::Int) =  (x1 < 0) | (x1 > n1(design)) ? error("0 <= x1 <= n
 #
 # end
 #
-# function checkx1x2(x1::T, x2::T, design::Design) where {T<:Integer}
-#
-#   checkx1(x1, design)
-#   x2 < 0 ? throw(InexactError("x2 must be non-negative")) : nothing
-#   n1 = interimsamplesize(design)
-#   n2 = samplesize(design, x1) - n1
-#   x2 > n2 ? throw(InexactError("x2 must be smaller or equal to n2")) : nothing
-#
-# end
+
 #
 # function ispossible(design::Design, x1::T, x2::T) where {T<:Integer}
 #
@@ -478,3 +461,6 @@ c(design::Design, x1::Int) =  (x1 < 0) | (x1 > n1(design)) ? error("0 <= x1 <= n
 #     cposterior(p) = prior(p)*dbinom(c - x1, n - n1, p)/z
 #     return QuadGK.quadgk(p -> cposterior(p)*_cpr(x1, n1, n, c, p), p0, 1.0, atol = 1e-4)[1]
 # end
+
+valid(design::Design, x1::Int) = 0 <= x1 <= n1(design)
+valid(design::Design, x1::Int, x2::Int) = valid(design, x1) & (0 <= x2 <= n(design, x1) - n1(design))
