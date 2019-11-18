@@ -11,6 +11,9 @@ d              = Design(sample_size, critical_value)
 @test all(.!valid.(d, (-1, stage_one_ss + 1)))
 @test all(valid.(d, x1))
 
+println(get_x1_x2_grid(d))
+
+
 @test probability(3, 10, d, .4) ≈ 7.20513705227343e-10
 
 @test power(3, d, .4) ≈ 0.4365591524965087

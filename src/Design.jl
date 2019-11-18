@@ -110,78 +110,13 @@ function power(x1::Int, design::Design, prior::Prior; mrv::T = 0.) where {T<:Rea
 end
 
 
-#
-# """
-#     stoppingforfutility{T<:Real}(design::Design, p::T) where {T<:Real}
-# Compute probability of stopping early for futility of a given design.
-# # Parameters
-# | Parameter    | Description |
-# | -----------: | :---------- |
-# | design       | a [`Design`](@ref) |
-# | p            | response probability |
-# """
-# function stoppingforfutility(design::Design, p::T) where {T<:Real}
-#
-#   @checkprob p
-#   n1  = interimsamplesize(design)
-#   X1  = Distributions.Binomial(n1, p) # stage one responses
-#   res = 0.0
-#   c   = criticalvalue(design)
-#   for x1 in 0:n1
-#     if c[x1 + 1] == Inf
-#       res += Distributions.pdf(X1, x1)
-#     end
-#   end
-#   return res
-#
-# end
-#
-#
-# """
-#     stoppingforefficacy{T<:Real}(design::Design, p::T) where {T<:Real}
-# Compute probability of stopping early for futility of a given design.
-# # Parameters
-# | Parameter    | Description |
-# | -----------: | :---------- |
-# | design       | a [`Design`](@ref) |
-# | p            | response probability |
-# """
-# function stoppingforefficacy(design::Design, p::T) where {T<:Real}
-#
-#   @checkprob p
-#   n1  = interimsamplesize(design)
-#   X1  = Distributions.Binomial(n1, p) # stage one responses
-#   res = 0.0
-#   c   = criticalvalue(design)
-#   for x1 in 0:n1
-#     if c[x1 + 1] == -Inf
-#       res += Distributions.pdf(X1, x1)
-#     end
-#   end
-#   return res
-#
-# end
-#
-#
-# """
-#     test(design::Design, x1::T, x2::T)::Bool where {T<:Integer}
-# Binary test decision of `design` when observing `x1` responses in stage one and
-# `x2` responses in stage two.
-# # Parameters
-# | Parameter    | Description |
-# | -----------: | :---------- |
-# | design       | a [`Design`](@ref) |
-# | x1           | number of stage-one responses |
-# | x2           | number of stage-two responses |
-# """
-# function test(design::Design, x1::T, x2::T)::Bool where {T<:Integer}
-#
-#   checkx1x2(x1, x2, design)
-#   return x1 + x2 > criticalvalue(design, x1)
-#
-# end
-#
-#
+
+function reject_null(x1::Int, x2::Int, design::Design)
+    !valid(design, x1, x2) ? error("invalid x1 / x2for given design") : nothing
+    return x1 + x2 > c(design, x1)
+end
+
+
 # """
 #     simulate(design::Design, p::T2, nsim::T1) where {T1<:Integer, T2<:Real}
 # Simulate `nsim` trials of design `design` with true response probability `p`.
@@ -221,60 +156,7 @@ end
 #   )
 #
 # end
-#
-#
-#
-# """
-#     jeffreysprior(design::Design)
-# Computes the Jeffreys prior of any given design.
-# # Parameters
-# | Parameter    | Description |
-# | -----------: | :---------- |
-# | design       | a Design |
-# # Return Value
-# A function with signature `prior{T<:Real}(p::T)::Real` where `p` is the response
-# probability and `prior(p)` the PDF of the Jeffres prior at `p`.
-# # Examples
-# ```julia-repl
-# julia> ss = SimpleSampleSpace(10:25, 100, n2min = 5)
-# julia> params = SimpleMinimalExpectedSampleSize(ss, .2, .4, .05, .2, .4)
-# julia> design, res = getoptimaldesign(params, solver = Gurobi.GurobiSolver())
-# julia> f = jeffreysprior(design)
-# julia> f(.5)
-# ```
-# """
-# function jeffreysprior(design::Design)
-#
-#   function sqrtfi(p::Float64)::Float64
-#
-#     res  = 0.0
-#     n1   = interimsamplesize(design)
-#     nmax = maximum(samplesize(design))
-#     supp = support(design)
-#     for i in 1:size(supp, 1)
-#         x1, x2 = supp[i, 1], supp[i, 2]
-#         x   = x1 + x2
-#         n   = samplesize(design, x1)
-#         res += binomial(BigInt(n1), BigInt(x1))*binomial(BigInt(n - n1), BigInt(x2))*BigFloat(p^x*(1 - p)^(n - x)*(x/p - (n - x)/(1 - p))^2)
-#     end
-#     return sqrt(res)
-#
-#   end
-#
-#   z = QuadGK.quadgk(sqrtfi, 0, 1, atol    = 0.001)[1] # exact integration from 0 to 1 is expensive!
-#
-#   function prior{T<:Real}(p::T)::Real
-#
-#     @checkprob p
-#     return sqrtfi(p)/z
-#
-#   end
-#
-#   return prior
-#
-# end
-#
-#
+
 # """
 #     writecsv(filename::String, design::Design; label::String = "")
 # Save design as .csv file.
@@ -293,70 +175,14 @@ end
 #   return df
 #
 # end
-#
-#
-# function writepropertiescsv(
-#   filename::String, design::Design;
-#   label::String = "", pvec = linspace(0, 1, 101), nmax::Int = Int(round(1.1*maximum(samplesize(design))))
-# )
-#
-#   df = DataFrame(
-#     p      = Real[],
-#     n      = Integer[],
-#     PDF    = Real[],
-#     ESS    = Real[],
-#     Q1SS   = Real[],
-#     Q3SS   = Real[],
-#     Power  = Real[]
-#   )
-#   for p in pvec
-#     ss = SampleSize(design, p)
-#     for n in 0:nmax
-#       push!(df, [p n pdf(ss, n ) mean(ss) quantile(ss, .25) quantile(ss, .75) power(design, p)])
-#     end
-#   end
-#   label != "" ? df[:design] = label : nothing
-#   CSV.write(filename, df)
-#   return df
-#
-# end
-#
-#
 
 
-#
-# function ispossible(design::Design, x1::T, x2::T) where {T<:Integer}
-#
-#   res = x1 < 0 ? false : true
-#   res = x1 > interimsamplesize(design) ? false : true
-#   res = x2 < 0 ? false : true
-#   res = x2 > samplesize(design, x1) - interimsamplesize(design) ? false : true
-#
-# end
-#
-# function support(design::Design)
-#
-#     n1     = interimsamplesize(design)
-#     nmax   = maximum(samplesize(design))
-#     return [[x1, x2] for x1 in 0:n1, x2 in 0:(nmax - n1) if
-#         (x2 <= samplesize(design, x1) - n1) & ((samplesize(design, x1) > n1) | (x2 == 0))
-#     ] |> x-> hcat(x...)'
-#
-# end
-#
-
-#
-# function _cprprior(x1, n1, n, c, p0, prior)
-#     if x1 > c
-#         return 1.0
-#     end
-#     if n - n1 + x1 <= c
-#         return 0.0
-#     end
-#     z = QuadGK.quadgk(p -> prior(p)*dbinom(c - x1, n - n1, p), p0, 1.0, atol = 1e-4)[1]
-#     cposterior(p) = prior(p)*dbinom(c - x1, n - n1, p)/z
-#     return QuadGK.quadgk(p -> cposterior(p)*_cpr(x1, n1, n, c, p), p0, 1.0, atol = 1e-4)[1]
-# end
+function get_x1_x2_grid(design::Design)
+    nmax = maximum(design.n)
+    return [[x1, x2] for x1 in 0:n1(design), x2 in 0:(nmax - n1(design)) if
+        (x2 <= n(design, x1) - n1(design)) & ((n(design, x1) > n1(design)) | (x2 == 0))
+    ] |> x -> hcat(x...)'
+end
 
 valid(design::Design, x1::Int) = 0 <= x1 <= n1(design)
 valid(design::Design, x1::Int, x2::Int) = valid(design, x1) & (0 <= x2 <= n(design, x1) - n1(design))
