@@ -1,0 +1,19 @@
+language: julia
+codecov: true
+coveralls: true
+os:
+    - linux
+julia:
+    - 1.0
+    - 1.1
+    - 1.2
+    - 1.3
+
+notifications:
+    email: false
+sudo: false
+addons:
+    apt_packages:
+        - gfortran
+        - liblapack-dev
+        - libblas-dev
