@@ -12,3 +12,6 @@ d              = Design(sample_size, critical_value)
 @test all(valid.(d, x1))
 
 @test probability(d, 3,  10, .4) ≈ 7.20513705227343e-10
+
+@test power(d, 3, .4) ≈ 0.4365591524965087
+@test power(d, .4) ≈ 0.2519087750133824

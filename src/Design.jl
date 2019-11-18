@@ -83,54 +83,40 @@ function probability(design::Design, x1::Int, x2::Int, p::T) where {T<:Real}
     end
 end
 
+function probability(design::Design, x1::Int, p::T) where {T<:Real}
+    if !valid(design, x1)
+        return 0.
+    else
+        return dbinom(BigInt(x1), BigInt(n1(design)), p)
+    end
+end
 
-# """
-#     power(design::Design, x1::T1, p::T2) where {T1<:Integer, T2<:Real}
-# conditional power of a design for a given response rate ``p`` and
-# the observed number of stage-one responses `x1`.
-# # Parameters
-# | Parameter    | Description |
-# | -----------: | :---------- |
-# | design       | a [`Design`](@ref) |
-# | p            | response probability |
-# | x1           | number of stage-one responses |
-# """
-# function power(
-#   design::Design, x1::T1, p::T2
-# ) where {T1<:Integer, T2<:Real}
-#
-#   @checkprob p
-#   checkx1(x1, design)
-#   res = _cpr(
-#     x1,
-#     interimsamplesize(design),
-#     samplesize(design, x1),
-#     criticalvalue(design, x1),
-#     p
-#   )
-#   return min(1, max(0, res)) # guarantee bounds!
-#
-# end
-#
-#
-# """
-#     power(design::Design, p::T) where {T<:Real}
-# Power of a design for a given response rate ``p`` .
-# # Parameters
-# | Parameter    | Description |
-# | -----------: | :---------- |
-# | design       | a [`Design`](@ref) |
-# | p            | response probability |
-# """
-# function power(design::Design, p::T) where {T<:Real}
-#
-#   @checkprob p
-#   n1      = interimsamplesize(design)
-#   X1      = Distributions.Binomial(n1, p) # stage one responses
-#   x1range = collect(0:n1)
-#   return min(1, max(0, vecdot(Distributions.pdf.(X1, x1range), power.(design, x1range, p))))
-#
-# end
+
+"""
+    power(design::Design, x1::T1, p::T2) where {T1<:Integer, T2<:Real}
+
+conditional power of a design for a given response rate ``p`` and
+the observed number of stage-one responses `x1`.
+# Parameters
+| Parameter    | Description |
+| -----------: | :---------- |
+| design       | a [`Design`](@ref) |
+| p            | response probability |
+| x1           | number of stage-one responses |
+"""
+function power(design::Design, x1::Int, p::T) where {T<:Real}
+    cc  = c(design, x1)
+    nn2 = n2(design, x1)
+    if isa(cc, Efficacy)
+        return 1.0
+    end
+    if isa(cc, Futility)
+        return 0.0
+    end
+    return 1 - pbinom(cc - x1, nn2, p)
+end
+power(design::Design, p::T) where {T<:Real} = sum(probability.(design, collect(0:n1(design)), p) .* power.(design, collect(0:n1(design)), p))
+
 #
 #
 # """
@@ -408,16 +394,7 @@ end
 # end
 #
 #
-#
-#
-# # utility functions
-# function checkx1(x1::T, design::Design) where {T<:Integer}
-#
-#   x1 < 0 ? throw(InexactError("x1 must be non-negative")) : nothing
-#   x1 > interimsamplesize(design) ? throw(InexactError("x1 smaller or equal to n1")) : nothing
-#
-# end
-#
+
 
 #
 # function ispossible(design::Design, x1::T, x2::T) where {T<:Integer}
@@ -439,16 +416,7 @@ end
 #
 # end
 #
-# function _cpr(x1, n1, n, c, p)
-#     # conditional probability to reject
-#     if x1 > c
-#         return(1.0)
-#     end
-#     if n - n1 <= c - x1
-#         return(0.0)
-#     end # TODO: simplify
-#     return 1 - Distributions.cdf(Distributions.Binomial(n - n1, p), convert(Int64, c - x1))
-# end
+
 #
 # function _cprprior(x1, n1, n, c, p0, prior)
 #     if x1 > c
