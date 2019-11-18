@@ -21,6 +21,6 @@ include("util.jl")
 export Futility, Efficacy, valid
 
 include("Design.jl")
-export Design, n, n1, n2, c, power, probability, reject_null, get_x1_x1_grid
+export Design, n, n1, n2, c, power, probability, reject_null, get_x1_x2_grid
 
 end # module
