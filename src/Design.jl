@@ -47,7 +47,7 @@ c(design::Design, x1::Int) = valid(design, x1) ? design.c[x1 + 1] : error("0 <= 
 
 
 
-function probability(design::Design, x1::Int, x2::Int, p::T) where {T<:Real}
+function probability(x1::Int, x2::Int, design::Design, p::T) where {T<:Real}
     if !valid(design, x1)
         return 0.
     else
@@ -57,7 +57,7 @@ function probability(design::Design, x1::Int, x2::Int, p::T) where {T<:Real}
     end
 end
 
-function probability(design::Design, x1::Int, p::T) where {T<:Real}
+function probability(x1::Int, design::Design, p::T) where {T<:Real}
     if !valid(design, x1)
         return 0.
     else
@@ -67,10 +67,9 @@ end
 
 
 
-function power(design::Design, x1::Int, p::T) where {T<:Real}
+function power(x1::Int, design::Design, p::T) where {T<:Real}
     !valid(design, x1) ? error("invalid x1") : nothing
-    cc  = c(design, x1)
-    nn2 = n2(design, x1)
+    cc, nn2 = c(design, x1), n2(design, x1)
     if isa(cc, Efficacy)
         return 1.0
     end
@@ -79,52 +78,20 @@ function power(design::Design, x1::Int, p::T) where {T<:Real}
     end
     return 1 - pbinom(cc - x1, nn2, p)
 end
-power(design::Design, p::T) where {T<:Real} = sum(probability.(design, collect(0:n1(design)), p) .* power.(design, collect(0:n1(design)), p))
+power(design::Design, p::T) where {T<:Real} = sum(probability.(collect(0:n1(design)), design, p) .* power.(collect(0:n1(design)), design, p))
 
 function expected_power(design::Design, prior::Prior; mrv::T = 0.) where {T<:Real}
     cprior = condition(prior, low = mrv)
-    res, prec = quadgk(p -> cprior.pdf(p) .* power.(design, p), cprior.low, cprior.high)
-    return res
+    return integrate(cprior, power.(design, cprior.pivots) )
 end
 
-function expected_power(design::Design, x1::Int, prior::Prior; mrv::T = 0.) where {T<:Real}
+function expected_power(x1::Int, design::Design, prior::Prior; mrv::T = 0.) where {T<:Real}
     !valid(design, x1) ? error("invalid x1") : nothing
-    cprior = condition(prior, low = mrv)
-    p, ω   = gauss_legendre_25(cprior.low, cprior.high)
-    return sum( cprior.pdf.(p) .* power.(design, p) .* ω )
+    cposterior = condition(posterior(prior, x1, n1(design)), low = mrv)
+    return integrate(cposterior, power.(x1, design, cposterior.pivots) )
 end
 
 
-#
-#
-# """
-#     expectedpower(design::Design, prior::Function; mcrv::Real = mcrv(parameters(design)))
-# Compute the expected power of a given design.
-# # Parameters
-# | Parameter    | Description |
-# | -----------: | :---------- |
-# | design       | a Design |
-# | prior        | prior function prior(p) for response probability p |
-# """
-# function expectedpower(design::Design, prior::Function; mcrv::Real = BinaryTwoStageDesigns.mcrv(parameters(design)) )
-#
-#   z   = QuadGK.quadgk(
-#       p -> prior(p),             # f(p)
-#       mcrv,  # p_min
-#       1,                         # p_max
-#       atol    = 0.001             # tolerance
-#   )[1]
-#   res = QuadGK.quadgk(
-#       p -> prior(p)*power(design, p)/z, # f(p)
-#       mcrv,    # p_min
-#       1,                           # p_max
-#       atol    = 0.001               # tolerance
-#   )[1]
-#   return min(1, max(0, res)) # guarantee bounds!
-#
-# end
-#
-#
 #
 # """
 #     stoppingforfutility{T<:Real}(design::Design, p::T) where {T<:Real}

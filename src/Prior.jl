@@ -9,6 +9,10 @@ struct Prior{T<:Real}
     high::T
 end
 
+# make priors iterable
+Base.iterate(design::Prior, state = 0) = state > 0 ? nothing : (design, state + 1)
+Base.length(design::Prior) = 1
+
 function Prior(a::Real, b::Real; low::Real = 0, high::Real = 1)
     p, ω = gauss_legendre_25(low, high)
     pdf  = dbeta.(p, convert(Float64, a), convert(Float64, b))
@@ -29,6 +33,8 @@ function Prior(a::Real, b::Real; low::Real = 0, high::Real = 1)
 end
 
 Base.show(io::IO, prior::Prior) = @printf "Beta(a=%.2f,b=%.2f)[%.2f,%.2f]" prior.a prior.b prior.low prior.high
+
+integrate(prior::Prior, values_on_pivots) = sum( values_on_pivots .* prior.weights )
 
 condition(prior::Prior{T}; low::T = prior.low, high::T = prior.high) where {T<:Real} =
     Prior(prior.a, prior.b, low = max(low, prior.low), high = min(high, prior.high))
