@@ -64,5 +64,5 @@ end
 function to_numeric(c2)
     c2 == EarlyFutility ? (return Inf) : nothing
     c2 == EarlyEfficacy ? (return -Inf) : nothing
-    return c2
+    return convert(Float64, c2)
 end
