@@ -3,7 +3,7 @@ function get_optimal_design(
     p0::Real,
     α::Real,
     β::Real,
-    prior::Beta;
+    prior::Prior;
     n1min::Int                   = Int(round(max(nmax/10, 5))),
     n1max::Int                   = Int(round(max(n1min, 2*nmax/3))),
     max_rel_increase::Real       = 3.,

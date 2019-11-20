@@ -27,13 +27,13 @@ function probability(x1::Int, x2::Int, design::Design, p::T) where {T<:Real}
     nn, n2 = n(design, x1), n2 = n2(design, x1)
     return !(0 <= x2 <= n2) ? 0 : p^(x1 + x2)*(1 - p)^(nn - x1 - x2) * dbinom(x1, n1(design), p) * dbinom(x2, n2, p)
 end
-probability(x1::Int, x2::Int, design::Design, Beta::Beta) = integrate(Beta, probability.(x1, x2, design, Beta.pivots))
+probability(x1::Int, x2::Int, design::Design, Prior::Prior) = integrate(Prior, probability.(x1, x2, design, Prior.pivots))
 
 function probability(x1::Int, design::Design, p::T) where {T<:Real}
     !valid(design, x1) ? (return 0.0) : nothing
     return dbinom(x1, n1(design), p)
 end
-probability(x1::Int, design::Design, Beta::Beta) = integrate(Beta, probability.(x1, design, Beta.pivots))
+probability(x1::Int, design::Design, Prior::Prior) = integrate(Prior, probability.(x1, design, Prior.pivots))
 
 function probability(event::Symbol, design::Design, p)
     event == :efficacy ? (return power(design, p)) : nothing
@@ -42,24 +42,24 @@ function probability(event::Symbol, design::Design, p)
     event == :early_efficacy ? (return sum(dbinom(x1 .== Efficacy(), n1(design), p)) ) : nothing
     event == :early_futility ? (return sum(dbinom(x1 .== Futility(), n1(design), p)) ) : nothing
 end
-probability(event::Symbol, design::Design, Beta::Beta) = integrate(Beta, probability.(event, design, Beta.pivots))
+probability(event::Symbol, design::Design, Prior::Prior) = integrate(Prior, probability.(event, design, Prior.pivots))
 
 function power(x1::Int, n2::Int, c2::CriticalValue, p::T) where {T<:Real} # does not depend on x1
     isa(c2, Efficacy) ? (return 1.0) : nothing
     isa(c2, Futility) ? (return 0.0) : nothing
     return 1 - pbinom(c2, n2, p)
 end
-power(x1::Int, n1::Int, n2::Int, c2::CriticalValue, cprior::Beta) = integrate(update(cprior, x1, n1), power.(x1, n2, c2, cprior.pivots))
+power(x1::Int, n1::Int, n2::Int, c2::CriticalValue, cprior::Prior) = integrate(update(cprior, x1, n1), power.(x1, n2, c2, cprior.pivots))
 
 function power(x1::Int, design::Design, p::T) where {T<:Real}
     !valid(design, x1) ? error("invalid x1") : nothing
     c2, n2 = c2(design, x1), n2(design, x1)
     power(n2, c2, p)
 end
-power(x1::Int, design::Design, cprior::Beta) = integrate(update(cprior, x1, n1(design)), power.(x1, design, cprior.pivots) )
+power(x1::Int, design::Design, cprior::Prior) = integrate(update(cprior, x1, n1(design)), power.(x1, design, cprior.pivots) )
 
 power(design::Design, p::T) where {T<:Real} = sum(probability.(0:n1(design), design, p) .* power.(0:n1(design), design, p))
-power(design::Design, cprior::Beta) = integrate(cprior, power.(design, cprior.pivots) )
+power(design::Design, cprior::Prior) = integrate(cprior, power.(design, cprior.pivots) )
 
 
 

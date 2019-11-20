@@ -15,8 +15,8 @@ include("util.jl")
 EarlyFutility, EarlyEfficacy = Futility(), Efficacy()
 export Futility, Efficacy, CriticalValue, valid, EarlyFutility, EarlyEfficacy
 
-include("Beta.jl")
-export Beta, condition, update, predictive_pmf
+include("Prior.jl")
+export Prior, condition, update, predictive_pmf
 
 include("Design.jl")
 export Design, n, n1, n2, c, power, probability, reject_null

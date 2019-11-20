@@ -11,19 +11,9 @@ d              = Design(sample_size, critical_value)
 @test all(.!valid.(d, (-1, stage_one_ss + 1)))
 @test all(valid.(d, x1))
 
-println(get_x1_x2_grid(d))
-
-
 @test probability(3, 10, d, .4) ≈ 7.20513705227343e-10
 
 @test power(3, d, .4) ≈ 0.4365591524965087
 @test power(d, .4) ≈ 0.2519087750133824
 
-prior = Prior(3, 5)
-println(power(d, 3/(3 + 5)))
-println(power.(x1, d, 3/(3 + 5)))
-println(power(d, prior))
-println(power.(x1, d, prior))
-
-println(probability(:efficacy, d, prior))
-println(probability(:efficacy, d, .4))
+prior = Prior(mean = .4, sd = .1)
