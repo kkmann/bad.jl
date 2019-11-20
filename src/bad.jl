@@ -19,7 +19,7 @@ include("Prior.jl")
 export Prior, condition, update, predictive_pmf
 
 include("Design.jl")
-export Design, n, n1, n2, c, power, probability, reject_null
+export Design, n, n1, n2, c2, power, probability, reject_null
 
 include("optimize.jl")
 export get_optimal_design

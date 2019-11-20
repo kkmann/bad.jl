@@ -24,8 +24,8 @@ c2(design::Design, x1::Int) = valid(design, x1) ? design.c2[x1 + 1] : error("0 <
 
 function probability(x1::Int, x2::Int, design::Design, p::T) where {T<:Real}
     !valid(design, x1) ? (return 0.0) : nothing
-    nn, n2 = n(design, x1), n2 = n2(design, x1)
-    return !(0 <= x2 <= n2) ? 0 : p^(x1 + x2)*(1 - p)^(nn - x1 - x2) * dbinom(x1, n1(design), p) * dbinom(x2, n2, p)
+    nn, nn2 = n(design, x1), n2(design, x1)
+    return !(0 <= x2 <= nn2) ? 0 : p^(x1 + x2)*(1 - p)^(nn - x1 - x2) * dbinom(x1, n1(design), p) * dbinom(x2, nn2, p)
 end
 probability(x1::Int, x2::Int, design::Design, Prior::Prior) = integrate(Prior, probability.(x1, x2, design, Prior.pivots))
 
@@ -53,8 +53,7 @@ power(x1::Int, n1::Int, n2::Int, c2::CriticalValue, cprior::Prior) = integrate(u
 
 function power(x1::Int, design::Design, p::T) where {T<:Real}
     !valid(design, x1) ? error("invalid x1") : nothing
-    c2, n2 = c2(design, x1), n2(design, x1)
-    power(n2, c2, p)
+    power(x1, n2(design, x1), c2(design, x1), p)
 end
 power(x1::Int, design::Design, cprior::Prior) = integrate(update(cprior, x1, n1(design)), power.(x1, design, cprior.pivots) )
 
