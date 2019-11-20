@@ -60,3 +60,9 @@ function guess_nmax(prior, p0, mrv, α, β; multiple = 2)
     napprox = p1*(1 - p1)*( (z_1_α + z_1_β) / (p1 - p0) )^2
     return Int(ceil(multiple * napprox))
 end
+
+function to_numeric(c2)
+    c2 == EarlyFutility ? (return Inf) : nothing
+    c2 == EarlyEfficacy ? (return -Inf) : nothing
+    return c2
+end
