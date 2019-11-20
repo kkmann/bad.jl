@@ -50,3 +50,13 @@ gauss_legendre_25 = function(low, high)
     scaled_weights = a.*weights
     return(scaled_pivots, scaled_weights)
 end
+
+function guess_nmax(prior, p0, mrv, α, β; multiple = 2)
+    cprior  = condition(prior, low = mrv)
+    # heuristic for nmax: 2* sample size of fixed z test powered for prior mean
+    p1      = mean(cprior)
+    z_1_α   = Distributions.quantile(Distributions.Normal(), 1 - α)
+    z_1_β   = Distributions.quantile(Distributions.Normal(), 1 - β)
+    napprox = p1*(1 - p1)*( (z_1_α + z_1_β) / (p1 - p0) )^2
+    return Int(ceil(multiple * napprox))
+end

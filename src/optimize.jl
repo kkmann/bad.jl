@@ -1,22 +1,25 @@
 function get_optimal_design(
-    nmax::Int,
+    prior::Prior,
     p0::Real,
     α::Real,
-    β::Real,
-    prior::Prior;
+    β::Real;
+    multiple::Real               = 2,
+    mrv::Real                    = p0,
+    nmax::Int                    = guess_nmax(prior, mrv, p0, α, β; multiple = multiple),
     n1min::Int                   = Int(round(max(nmax/10, 5))),
     n1max::Int                   = Int(round(max(n1min, 2*nmax/3))),
     max_rel_increase::Real       = 3.,
     min_rel_increase::Real       = 1.1,
-    mrv::Real                    = p0,
     min_conditional_power::Real  = 0,
     k::Int                       = 1,
     max_seconds::Int             = 60,
     verbose::Int                 = 3
 )
 
-    p1 = .4
+    nmax > 150 ? error("nmax > 150, consider a continuous approximation using the R package 'adoptr'.") : nothing
 
+    cprior       = condition(prior, low = mrv)
+    p1           = mean(cprior)
     n1vals       = collect(n1min:n1max)
     x1vals       = collect(0:n1max)
     n2vals       = collect(0:(nmax - n1max))
@@ -24,17 +27,17 @@ function get_optimal_design(
     c2vals_stop  = [EarlyFutility, EarlyEfficacy]
     c2vals       = vcat([EarlyFutility], 0:(maximum(n2vals) - 1), [EarlyEfficacy]) |>
         x -> convert(Vector{Union{CriticalValue, Int}}, x)
-    cprior       = condition(prior, low = mrv)
+
     # convenience, check whether configuration is feasible (exploit sparsity!)
     valid(x1, n1, n2, c2) = valid_(x1, n1, n2, c2, nmax, p0, α, prior, n1min, n1max, max_rel_increase, min_rel_increase, mrv, min_conditional_power, k)
     # define model basis with indicator variables for all possible feasible configurations
+    println("creating IP model...")
     m = Model()
-    println("creating indicator variables...")
     @variable(m, # ind[x1, n1, n2, c2] == 1 iff n1 = n1, n2(x1) = n2, c2(x1) = c2
         ind[x1 in x1vals, n1 in n1vals, n2 in n2vals, c2 in c2vals; valid(x1, n1, n2, c2)],
         Bin
     )
-    @printf "IP model with %i variables created.\n\r" length(ind)
+    @printf "done, IP model with %i variables created.\n\r" length(ind)
     # need to make sure that exactly one n1 value is selected, IP or trick via
     # auxiliary variables: n1_selected[n1] == 1 iff n1 = n1
     @variable(m, n1_selected[n1 in n1vals], Bin)

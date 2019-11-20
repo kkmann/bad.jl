@@ -2,7 +2,6 @@ struct Prior{T<:Real}
     pivots::Vector{T}
     weights::Vector{T}
     pdf::Vector{T}
-    cdf::Vector{T}
     a::T
     b::T
     low::T
@@ -16,14 +15,12 @@ Base.length(design::Prior) = 1
 function Prior(a::Real, b::Real; low::Real = 0, high::Real = 1)
     p, ω = gauss_legendre_25(low, high)
     pdf  = dbeta.(p, convert(Float64, a), convert(Float64, b))
-    pdf  = pdf ./ sum(pdf .* ω) # normalize
-    cdf  = cumsum(pdf)
-    cdf  = cdf ./ cdf[end] # normalize
+    z    = (high - low)/2 * sum(pdf .* ω)
+    pdf  = pdf ./ z # normalize
     return Prior{Float64}(
         convert(Vector{Float64}, p),
         convert(Vector{Float64}, ω),
         convert(Vector{Float64}, pdf),
-        convert(Vector{Float64}, cdf),
         convert(Float64, a),
         convert(Float64, b),
         convert(Float64, low),
@@ -56,6 +53,8 @@ function update(prior::Prior{T}, x::Int, n::Int) where {T<:Real}
 end
 
 integrate(prior::Prior, values_on_pivots) = (prior.high - prior.low) / 2 * sum( prior.pdf .* values_on_pivots .* prior.weights )
+
+mean(prior::Prior) = integrate(prior, prior.pivots)
 
 function predictive_pmf(x, n, prior::Prior{T}) where {T<:Real}
     integrate(prior, dbinom.(x, n, prior.pivots))
