@@ -1,6 +1,6 @@
-prior  = Beta(mean = .5, sd = .05)
-p0     = .2
-α, β   = .05, .2
+prior = Beta(mean = .5, sd = .05)
+p0    = .2
+α, β  = .05, .2
 
 get_optimal_design(prior, p0, α, β; group_sequential = false, one_stage = false) =
     DesignIPModel(prior, p0, α, β; group_sequential = group_sequential, one_stage = one_stage) +
