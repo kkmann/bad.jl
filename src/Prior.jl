@@ -1,61 +1,52 @@
-struct Prior{T<:Real}
-    pivots::Vector{T}
-    weights::Vector{T}
-    pdf::Vector{T}
-    a::T
-    b::T
-    low::T
-    high::T
-end
+abstract type Prior end
 
 # make priors iterable
 Base.iterate(design::Prior, state = 0) = state > 0 ? nothing : (design, state + 1)
 Base.length(design::Prior) = 1
 
-function Prior(a::Real, b::Real; low::Real = 0, high::Real = 1)
-    p, ω = gauss_legendre_25(low, high)
-    pdf  = dbeta.(p, convert(Float64, a), convert(Float64, b))
-    z    = (high - low)/2 * sum(pdf .* ω)
-    pdf  = pdf ./ z # normalize
-    return Prior{Float64}(
-        convert(Vector{Float64}, p),
-        convert(Vector{Float64}, ω),
-        convert(Vector{Float64}, pdf),
-        convert(Float64, a),
-        convert(Float64, b),
-        convert(Float64, low),
-        convert(Float64, high)
-    )
+
+
+struct WeightedPrior
+    ω::Real
+    prior::Prior
 end
-# convenience function to fit a and b
-function Prior(;mean::Real = .5, sd::Real = sqrt(1/12))
-    sd >= .5 ? error("sd must be strictly smaller than .5") : nothing
-    # solve for a, b
-    a = (-mean^3 + mean^2 - mean*sd^2) / sd^2
-    b = (mean - 1) * (mean^2 - mean + sd^2) / sd^2
-    Prior(a, b; low = 0, high = 1)
+*(ω::Real, prior::Prior) = WeightedPrior(ω, prior)
+
+# make weighted priors iterable
+Base.iterate(design::WeightedPrior, state = 0) = state > 0 ? nothing : (design, state + 1)
+Base.length(design::WeightedPrior) = 1
+
+condition(wprior::WeightedPrior; low::T = prior.low, high::T = prior.high) where {T<:Real} =
+    wprior.ω * condition(wprior.prior; low = low, high = high)
+
+function update(wprior::WeightedPrior, x::Int, n::Int) where {T<:Real}
+    wprior.ω * update(wprior.prior, x, n)
 end
 
-function Base.show(io::IO, prior::Prior)
-    if (prior.low != 0) | (prior.high != 1)
-        @printf "Beta|[%.2f,%.2f](a=%.2f,b=%.2f)" prior.low prior.high prior.a prior.b
-    else
-        @printf "Beta(a=%.2f,b=%.2f)" prior.a prior.b
-    end
+integrate(wprior::WeightedPrior, values_on_pivots) = wprior.ω * integrate(wprior.prior, values_on_pivots)
+
+mean(wprior::WeightedPrior) = wprior.ω * mean(wprior.prior)
+
+function predictive_pmf(x, n, wprior::WeightedPrior) where {T<:Real}
+    wprior.ω * integrate(wprior.prior, dbinom.(x, n, prior.pivots))
 end
 
-condition(prior::Prior{T}; low::T = prior.low, high::T = prior.high) where {T<:Real} =
-    Prior(prior.a, prior.b, low = max(low, prior.low), high = min(high, prior.high))
 
-function update(prior::Prior{T}, x::Int, n::Int) where {T<:Real}
-    !(0 <= x <= n) ? error("invalid x / n") : nothing
-    Prior(prior.a + x, prior.b + n - x, low = prior.low, high = prior.high)
+
+struct MixturePrior <: Prior
+    ω::Vector{Real}
+    priors::Vector{Prior}
 end
 
-integrate(prior::Prior, values_on_pivots) = (prior.high - prior.low) / 2 * sum( prior.pdf .* values_on_pivots .* prior.weights )
++(φ::WeightedPrior, η::WeightedPrior) = sum([φ.ω, η.ω]) == 1 ? MixturePrior([φ.ω, η.ω], [φ.prior, η.prior]) : error("weights must sum to 1")
 
-mean(prior::Prior) = integrate(prior, prior.pivots)
+condition(mprior::MixturePrior; low::T1 = 0., high::T1 = 1.) where {T1<:Real, T2<:Real} =
+    MixturePrior(mprior.ω,  condition.(mprior.priors; low = low, high = high))
 
-function predictive_pmf(x, n, prior::Prior{T}) where {T<:Real}
-    integrate(prior, dbinom.(x, n, prior.pivots))
-end
+update(mprior::MixturePrior, x::Int, n::Int) = MixturePrior(mprior.ω,  update.(mprior.priors, x, n))
+
+integrate(mprior::MixturePrior, values_on_pivots) =sum( mprior.ω .* integrate.(mprior.priors, values_on_pivots) )
+
+mean(mprior::MixturePrior) = sum( mprior.ω .* mean.(mprior.priors) )
+
+predictive_pmf(x, n, mprior::MixturePrior) = sum( mprior.ω .* predictive_pmf.(x, n, mprior.priors) )

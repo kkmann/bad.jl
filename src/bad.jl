@@ -1,6 +1,6 @@
 module bad
 
-import Base.show, Base.isless, Base.isequal, Base.-
+import Base.show, Base.isless, Base.isequal, Base.-, Base.+, Base.*
 
 import Printf.@printf
 
@@ -16,7 +16,10 @@ EarlyFutility, EarlyEfficacy = Futility(), Efficacy()
 export Futility, Efficacy, CriticalValue, valid, EarlyFutility, EarlyEfficacy
 
 include("Prior.jl")
-export Prior, condition, update, predictive_pmf, mean
+export condition, update, predictive_pmf, mean
+
+include("Beta.jl")
+export Beta
 
 include("Design.jl")
 export Design, n, n1, n2, c2, power, probability, reject_null
