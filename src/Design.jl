@@ -63,7 +63,7 @@ power(design::Design, cprior::Prior) = integrate(cprior, power.(design, cprior.p
 
 
 function reject_null(x1::Int, x2::Int, design::Design)
-    !valid(design, x1, x2) ? error("invalid x1 / x2for given design") : nothing
+    !valid(design, x1, x2) ? error("invalid x1 / x2 for given design") : nothing
     return x2 > c2(design, x1)
 end
 
