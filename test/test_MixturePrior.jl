@@ -2,7 +2,7 @@ prior1  = condition(Beta(mean = .4, sd = .1), low = .3)
 prior2  = Beta(1, 1)
 
 mprior1 = .2prior1 + .3prior2
-@test !is_proper(mprior3)
+@test !is_proper(mprior1)
 
 mprior2    = .9prior1 + .1prior2
 @test mean(prior1) < mean(mprior2) < mean(prior2)
