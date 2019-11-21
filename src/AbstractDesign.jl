@@ -4,17 +4,18 @@ abstract type AbstractDesign end
 Base.iterate(design::AbstractDesign, state = 0) = state > 0 ? nothing : (design, state + 1)
 Base.length(design::AbstractDesign) = 1
 
+Base.show(io::IO, design::AbstractDesign) = print(io, string(design))
 Base.show(io::IO, ::MIME"application/prs.juno.inline", design::AbstractDesign) = print(io, string(design))
 
 function string(design::AbstractDesign)
     nn1          = n1(design)
-    cont_region = (early_futility(design) - 1):(early_efficacy(design) + 1)
+    cont_region = (early_futility(design) + 1):(early_efficacy(design) - 1)
     if length(cont_region) == 0 # one stage design
         return @sprintf "%s<n=%i;c=%i>" string(typeof(design)) nn1 early_futility(design)
     end
     n2_cont     = n2.(design, cont_region)
     if minimum(n2_cont) == maximum(n2_cont) # group sequential design
-        return @sprintf "%s<n1=%i;n2:[%i,%i]=%i>" string(typeof(design)) nn1 cont_region[1] cont_region[end] n2_cont[1]
+        return @sprintf "%s<n1=%i;n2(%i...%i)=%i>" string(typeof(design)) nn1 cont_region[1] cont_region[end] n2_cont[1]
     end
     # generic two stage design
     return @sprintf "%s<n1=%i;n2:[%i,%i]->[%i,%i]>" string(typeof(design)) nn1 cont_region[1] cont_region[end] minimum(n2_cont) maximum(n2_cont)
