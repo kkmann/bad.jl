@@ -10,7 +10,7 @@ function get_optimal_design(
     n1max::Int                   = Int(round(max(n1min, 2*nmax/3))),
     max_rel_increase::Real       = 3.,
     min_rel_increase::Real       = 1.1,
-    min_conditional_power::Real  = 0,
+    min_conditional_power::Real  = .5,
     k::Int                       = 1,
     max_seconds::Int             = 60,
     verbose::Int                 = 3
@@ -19,7 +19,6 @@ function get_optimal_design(
     nmax > 150 ? error("nmax > 150, consider a continuous approximation using the R package 'adoptr'.") : nothing
 
     cprior       = condition(prior, low = mrv)
-    p1           = mean(cprior)
     n1vals       = collect(n1min:n1max)
     x1vals       = collect(0:n1max)
     n2vals       = collect(0:(nmax - n1max))
@@ -29,7 +28,8 @@ function get_optimal_design(
         x -> convert(Vector{Union{CriticalValue, Int}}, x)
 
     # convenience, check whether configuration is feasible (exploit sparsity!)
-    valid(x1, n1, n2, c2) = valid_(x1, n1, n2, c2, nmax, p0, α, prior, n1min, n1max, max_rel_increase, min_rel_increase, mrv, min_conditional_power, k)
+    cprior = condition(prior; low = mrv)
+    valid(x1, n1, n2, c2) = valid_(x1, n1, n2, c2, nmax, p0, α, cprior, n1min, n1max, max_rel_increase, min_rel_increase, mrv, min_conditional_power, k)
     # define model basis with indicator variables for all possible feasible configurations
     println("creating IP model...")
     m = Model()
@@ -89,7 +89,7 @@ function get_optimal_design(
     # power constraint
     @constraint(m,
         sum(
-            dbinom(x1, n1, p1) * power(x1, n2, c2, p1) * ind[x1, n1, n2, c2] for
+            power(x1, n1, n2, c2, cprior) * predictive_pmf(x1, n1, cprior) * ind[x1, n1, n2, c2] for
             x1 in x1vals, n1 in n1vals, n2 in n2vals, c2 in c2vals if
             valid(x1, n1, n2, c2)
         ) >= 1 - β
@@ -99,7 +99,7 @@ function get_optimal_design(
     # objective: minimize expected sample size
     @objective(m, Min,
         sum(
-            (n1 + n2) * dbinom(x1, n1, p1) * ind[x1, n1, n2, c2] for
+            (n1 + n2) * predictive_pmf(x1, n1, prior) * ind[x1, n1, n2, c2] for
             x1 in x1vals, n1 in n1vals, n2 in n2vals, c2 in c2vals if
             valid(x1, n1, n2, c2)
         )
@@ -135,7 +135,10 @@ end
 
 
 
-function valid_(x1, n1, n2, c2, nmax, p0, α, prior, n1min, n1max, max_rel_increase, min_rel_increase, mrv, min_conditional_power, k)
+function valid_(x1, n1, n2, c2, nmax, p0, α, cprior, n1min, n1max, max_rel_increase, min_rel_increase, mrv, min_conditional_power, k)
+
+    x1 < 0 ?
+        (return false) : nothing
     x1 > n1 ?
         (return false) : nothing
     !(n1 + n2 <= nmax) ?
@@ -158,9 +161,9 @@ function valid_(x1, n1, n2, c2, nmax, p0, α, prior, n1min, n1max, max_rel_incre
     ( (x1 > findfirst(1 .- pbinom.(0:n1, n1, p0) .<= α) + k) & (n2 > 0) ) ?
         (return false) : nothing
     # check conditional power constraint
-    # if min_conditional_power > 0 # save time if not!
-    #     ( early_stop(c2) & (power(x1, n1, n2, c2, cprior) <= min_conditional_power) ) ?
-    #         (return false) : nothing
-    # end
+    if min_conditional_power > 0 # save time if not!
+        ( !early_stop(c2) & (power(x1, n1, n2, c2, cprior) <= min_conditional_power) ) ?
+                (return false) : nothing
+    end
     return true # noting to object, return true
 end
