@@ -5,13 +5,13 @@ function get_optimal_design(
     β::Real;
     multiple::Real               = 2,
     mrv::Real                    = p0,
-    nmax::Int                    = guess_nmax(prior, mrv, p0, α, β; multiple = multiple),
-    n1min::Int                   = Int(round(max(nmax/10, 5))),
-    n1max::Int                   = Int(round(max(n1min, 2*nmax/3))),
+    one_stage                    = false,
+    nmax::Int                    = one_stage ? guess_nmax(prior, mrv, p0, α, β; multiple = 2) : guess_nmax(prior, mrv, p0, α, β; multiple = multiple),
+    n1min::Int                   = one_stage ? Int(round(max(.9*nmax, 5))) : Int(round(max(nmax/10, 5))),
+    n1max::Int                   = one_stage ? nmax : Int(round(max(n1min, 2*nmax/3))),
     max_rel_increase::Real       = 3.,
     min_rel_increase::Real       = 1.1,
     group_sequential             = false,
-    single_stage                 = false,
     min_conditional_power::Real  = .5,
     k::Int                       = 1,
     max_seconds::Int             = 60,
@@ -23,15 +23,15 @@ function get_optimal_design(
     cprior       = condition(prior, low = mrv)
     n1vals       = collect(n1min:n1max)
     x1vals       = collect(0:n1max)
-    n2vals       = single_stage ? [0] : collect(0:(nmax - n1max))
-    c2vals_cont  = single_stage ? [] : collect(0:(nmax - n1max - 1))
+    n2vals       = one_stage ? [0] : collect(0:(nmax - n1max))
+    c2vals_cont  = one_stage ? [] : collect(0:(nmax - n1max - 1))
     c2vals_stop  = [EarlyFutility, EarlyEfficacy]
     c2vals       = vcat(c2vals_stop, c2vals_cont) |>
         x -> convert(Vector{Union{CriticalValue, Int}}, x)
 
     # convenience, check whether configuration is feasible (exploit sparsity!)
     cprior = condition(prior; low = mrv)
-    valid(x1, n1, n2, c2) = valid_(x1, n1, n2, c2, nmax, p0, α, cprior, n1min, n1max, max_rel_increase, min_rel_increase, mrv, min_conditional_power, k, single_stage)
+    valid(x1, n1, n2, c2) = valid_(x1, n1, n2, c2, nmax, p0, α, cprior, n1min, n1max, max_rel_increase, min_rel_increase, mrv, min_conditional_power, k, one_stage)
     # define model basis with indicator variables for all possible feasible configurations
     println("creating IP model...")
     m = Model()
@@ -44,6 +44,10 @@ function get_optimal_design(
     # auxiliary variables: n1_selected[n1] == 1 iff n1 = n1
     @variable(m, n1_selected[n1 in n1vals], Bin)
     @constraint(m, sum(n1_selected[n1] for n1 in n1vals) == 1)
+    if group_sequential # same for n2 in group sequential case
+        @variable(m, n2_selected[n2 in n2vals], Bin)
+        @constraint(m, sum(n2_selected[n2] for n2 in n2vals) == 1)
+    end
     println("defining feasibility constraints...")
     # implement all constraints conditional on n1
     for n1 in n1vals
@@ -51,6 +55,14 @@ function get_optimal_design(
         @constraint(m,
             2*nmax * n1_selected[n1] >= sum(ind[x1, n1, n2, c2] for x1 in x1vals, n2 in n2vals, c2 in c2vals if valid(x1, n1, n2, c2))
         )
+        # make sure that n2_selected[n2] is 1 iff any of the other values is assigned
+        if group_sequential
+            for n2 in n2vals
+                @constraint(m,
+                    2*nmax * n2_selected[n2] >= sum(ind[x1, n1, n2, c2] for x1 in x1vals, c2 in c2vals_cont if valid(x1, n1, n2, c2))
+                )
+            end
+        end
         for x1 in 0:n1
             # make its a function in x1
             @constraint(m,
@@ -62,16 +74,6 @@ function get_optimal_design(
                     sum(ind[x1,     n1, n2, c2] for n2 in n2vals for c2 in c2vals if valid(x1, n1, n2, c2) & valid(x1 - 1, n1, n2, c2)) ==
                     sum(ind[x1 - 1, n1, n2, c2] for n2 in n2vals for c2 in c2vals if valid(x1, n1, n2, c2) & valid(x1 - 1, n1, n2, c2))
                 )
-            end
-            if group_sequential
-                if x1 > 0
-                    for n2 in n2vals
-                        @constraint(m,
-                            sum(ind[x1,     n1, n2, c2] for c2 in c2vals_cont if valid(x1, n1, n2, c2) & valid(x1 - 1, n1, n2, c2)) ==
-                            sum(ind[x1 - 1, n1, n2, c2] for c2 in c2vals_cont if valid(x1, n1, n2, c2) & valid(x1 - 1, n1, n2, c2))
-                        )
-                    end
-                end
             end
             # make sure we have contiguous stopping for efficacy / futility
             if ((x1 > 0) & all(valid.([x1 - 1, x1], n1, 0, [EarlyFutility])))
@@ -147,13 +149,13 @@ end
 
 
 
-function valid_(x1, n1, n2, c2, nmax, p0, α, cprior, n1min, n1max, max_rel_increase, min_rel_increase, mrv, min_conditional_power, k, single_stage)
+function valid_(x1, n1, n2, c2, nmax, p0, α, cprior, n1min, n1max, max_rel_increase, min_rel_increase, mrv, min_conditional_power, k, one_stage)
 
     x1 < 0 ?
         (return false) : nothing
     x1 > n1 ?
         (return false) : nothing
-    single_stage & (n2 > 0) ?
+    one_stage & (n2 > 0) ?
         (return false) : nothing
     n1 + n2 > nmax ?
         (return false) : nothing
