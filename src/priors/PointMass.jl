@@ -1,7 +1,8 @@
 struct PointMass{T<:Real} <: Prior
     atom::T
+    PointMass{T}(atom::T) where{T<:Real} = (0 <= atom <= 1) ? new(atom) : error("atom must be in [0, 1]")
 end
-PointMass(atom::Real) = (0 <= atom <= 1) ? (return PointMass{typeof(atom)}(atom)) : error("atom must be in [0, 1]")
+PointMass(atom::T) where{T<:Real} = PointMass{T}(atom) 
 
 function condition(prior::PointMass{T}; low::T = prior.atom, high::T = prior.atom) where {T<:Real}
     (low <= prior.atom <= high) ? (return prior) : error("conditioning only well-defined when probability atom is contained in intervsl")

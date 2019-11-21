@@ -49,23 +49,23 @@ function probability(event::Symbol, design::AbstractDesign, p)
     event == :early_efficacy ? (return sum(dbinom(x1 .== Efficacy(), n1(design), p)) ) : nothing
     event == :early_futility ? (return sum(dbinom(x1 .== Futility(), n1(design), p)) ) : nothing
 end
-probability(event::Symbol, design::AbstractDesign, Prior::Prior) = integrate(Prior, probability.(event, design, Prior.pivots))
+probability(event::Symbol, design::AbstractDesign, Prior::Prior) = expected_value(p -> probability(event, design, p), prior)
 
 function power(x1::Int, n2::Int, c2::CriticalValue, p::T) where {T<:Real} # does not depend on x1
     isa(c2, Efficacy) ? (return 1.0) : nothing
     isa(c2, Futility) ? (return 0.0) : nothing
     return 1 - pbinom(c2, n2, p)
 end
-power(x1::Int, n1::Int, n2::Int, c2::CriticalValue, cprior::Prior) = integrate(update(cprior, x1, n1), power.(x1, n2, c2, cprior.pivots))
+power(x1::Int, n1::Int, n2::Int, c2::CriticalValue, cprior::Prior) = expected_value(p -> power(x1, n2, c2, p), update(cprior, x1, n1))
 
 function power(x1::Int, design::AbstractDesign, p::T) where {T<:Real}
     !valid(design, x1) ? error("invalid x1") : nothing
     power(x1, n2(design, x1), c2(design, x1), p)
 end
-power(x1::Int, design::AbstractDesign, cprior::Prior) = integrate(update(cprior, x1, n1(design)), power.(x1, design, cprior.pivots) )
+power(x1::Int, design::AbstractDesign, cprior::Prior) = expected_value(p -> power(x1, design, p), update(cprior, x1, n1(design)))
 
 power(design::AbstractDesign, p::T) where {T<:Real} = sum(probability.(0:n1(design), design, p) .* power.(0:n1(design), design, p))
-power(design::AbstractDesign, cprior::Prior) = integrate(cprior, power.(design, cprior.pivots) )
+power(design::AbstractDesign, cprior::Prior) = expected_value(p -> power.(design, p), cprior)
 
 
 
