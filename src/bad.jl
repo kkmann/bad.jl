@@ -18,7 +18,7 @@ export Futility, Efficacy, CriticalValue, valid, EarlyFutility, EarlyEfficacy
 include("Prior.jl")
 export is_proper, condition, update, predictive_pmf, mean, expected_value
 
-include("Beta.jl")
+include("priors/Beta.jl")
 export Beta
 
 include("AbstractDesign.jl")
@@ -36,10 +36,15 @@ export OptimalDesign
 include("optimise.jl")
 export optimise
 
-include("ExpectedPowerConstraint.jl")
+include("constraints/ExpectedPowerConstraint.jl")
 export minimal_expected_power
 
-include("ExpectedSampleSize.jl")
+include("objectives/ExpectedSampleSize.jl")
 export minimize_expected_sample_size
+
+include("Estimator.jl")
+
+include("estimators/MaximumLikelihoodEstimator.jl")
+export MaximumLikelihoodEstimator
 
 end # module
