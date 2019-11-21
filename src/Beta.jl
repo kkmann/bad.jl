@@ -42,6 +42,8 @@ end
 
 integrate(prior::Beta, values_on_pivots) = (prior.high - prior.low) / 2 * sum( prior.pdf .* values_on_pivots .* prior.weights )
 
+expected_value(f::Function, prior::Beta) = integrate(prior, f.(prior.pivots))
+
 mean(prior::Beta) = integrate(prior, prior.pivots)
 
 function predictive_pmf(x, n, prior::Beta{T}) where {T<:Real}

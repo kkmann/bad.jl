@@ -4,7 +4,8 @@ abstract type Prior end
 Base.iterate(design::Prior, state = 0) = state > 0 ? nothing : (design, state + 1)
 Base.length(design::Prior) = 1
 
-Base.show(io::IO, prior::Prior) = print(string(prior))
+Base.show(io::IO, prior::Prior) = print(io, string(prior))
+Base.show(io::IO, ::MIME"application/prs.juno.inline", prior::Prior) = print(io, string(prior))
 
 struct MixturePrior <: Prior
     ω::Vector{Real}
@@ -20,7 +21,7 @@ condition(mprior::MixturePrior; low::T1 = 0., high::T1 = 1.) where {T1<:Real, T2
 
 update(mprior::MixturePrior, x::Int, n::Int) = MixturePrior(mprior.ω,  update.(mprior.priors, x, n))
 
-integrate(mprior::MixturePrior, values_on_pivots) =sum( mprior.ω .* integrate.(mprior.priors, values_on_pivots) )
+expected_value(f::Function, mprior::MixturePrior) = sum( mprior.ω .* expected_value.(f::Function, mprior.priors) )
 
 mean(mprior::MixturePrior) = sum( mprior.ω .* mean.(mprior.priors) )
 
