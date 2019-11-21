@@ -21,6 +21,9 @@ export is_proper, condition, update, predictive_pmf, mean, expected_value
 include("priors/Beta.jl")
 export Beta
 
+include("priors/PointMass.jl")
+export PointMass
+
 include("AbstractDesign.jl")
 export n, n1, n2, c2, early_futility, early_efficacy, power, probability, reject_null
 
