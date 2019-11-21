@@ -1,8 +1,8 @@
 module bad
 
-import Base.show, Base.isless, Base.isequal, Base.-, Base.+, Base.*
+import Base.show, Base.isless, Base.isequal, Base.-, Base.+, Base.*, Base.string
 
-import Printf.@printf
+import Printf.@printf, Printf.@sprintf
 
 import Distributions, Distributions.pdf, Distributions.cdf
 

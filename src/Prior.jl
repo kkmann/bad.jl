@@ -4,6 +4,8 @@ abstract type Prior end
 Base.iterate(design::Prior, state = 0) = state > 0 ? nothing : (design, state + 1)
 Base.length(design::Prior) = 1
 
+Base.show(io::IO, prior::Prior) = print(string(prior))
+
 struct MixturePrior <: Prior
     ω::Vector{Real}
     priors::Vector{Prior}
@@ -23,3 +25,13 @@ integrate(mprior::MixturePrior, values_on_pivots) =sum( mprior.ω .* integrate.(
 mean(mprior::MixturePrior) = sum( mprior.ω .* mean.(mprior.priors) )
 
 predictive_pmf(x, n, mprior::MixturePrior) = sum( mprior.ω .* predictive_pmf.(x, n, mprior.priors) )
+
+function string(mprior::MixturePrior)
+    n = length(mprior.priors)
+    res = ""
+    for i in 1:(n - 1)
+        res *= (@sprintf "%.2f*" mprior.ω[i]) * string(mprior.priors[i]) * " + "
+    end
+    res *= (@sprintf "%.2f*" mprior.ω[n]) * string(mprior.priors[n])
+    res
+end

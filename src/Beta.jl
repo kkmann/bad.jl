@@ -32,14 +32,6 @@ function Beta(;mean::Real = .5, sd::Real = sqrt(1/12))
     Beta(a, b; low = 0, high = 1)
 end
 
-function Base.show(io::IO, prior::Beta)
-    if (prior.low != 0) | (prior.high != 1)
-        @printf "Beta|[%.2f,%.2f](a=%.2f,b=%.2f)" prior.low prior.high prior.a prior.b
-    else
-        @printf "Beta(a=%.2f,b=%.2f)" prior.a prior.b
-    end
-end
-
 condition(prior::Beta{T}; low::T = prior.low, high::T = prior.high) where {T<:Real} =
     Beta(prior.a, prior.b, low = max(low, prior.low), high = min(high, prior.high))
 
@@ -54,4 +46,12 @@ mean(prior::Beta) = integrate(prior, prior.pivots)
 
 function predictive_pmf(x, n, prior::Beta{T}) where {T<:Real}
     integrate(prior, dbinom.(x, n, prior.pivots))
+end
+
+function string(prior::Beta)
+    if (prior.low != 0) | (prior.high != 1)
+        @sprintf "Beta|[%.2f,%.2f](a=%.2f,b=%.2f)" prior.low prior.high prior.a prior.b
+    else
+        @sprintf "Beta(a=%.2f,b=%.2f)" prior.a prior.b
+    end
 end
