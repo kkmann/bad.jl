@@ -1,21 +1,25 @@
-function get_optimal_design(
+mutable struct DesignIPModel
+    jump_model::Model
+    vars::Dict{String,Any}
+    params::Dict{String,Any}
+end
+
+function DesignIPModel(
     prior::Prior,
     p0::Real,
     α::Real,
     β::Real;
     multiple::Real               = 2,
     mrv::Real                    = p0,
-    one_stage                    = false,
+    one_stage::Bool              = false,
     nmax::Int                    = one_stage ? guess_nmax(prior, mrv, p0, α, β; multiple = 2) : guess_nmax(prior, mrv, p0, α, β; multiple = multiple),
     n1min::Int                   = one_stage ? Int(round(max(.9*nmax, 5))) : Int(round(max(nmax/10, 5))),
     n1max::Int                   = one_stage ? nmax : Int(round(max(n1min, 2*nmax/3))),
     max_rel_increase::Real       = 3.,
     min_rel_increase::Real       = 1.1,
-    group_sequential             = false,
+    group_sequential::Bool       = false,
     min_conditional_power::Real  = .5,
-    k::Int                       = 1,
-    max_seconds::Int             = 60,
-    verbose::Int                 = 3
+    k::Int                       = 1
 )
 
     nmax > 200 ? error("nmax > 200, consider a continuous approximation using the R package 'adoptr'.") : nothing
@@ -32,14 +36,11 @@ function get_optimal_design(
     # convenience, check whether configuration is feasible (exploit sparsity!)
     cprior = condition(prior; low = mrv)
     valid(x1, n1, n2, c2) = valid_(x1, n1, n2, c2, nmax, p0, α, cprior, n1min, n1max, max_rel_increase, min_rel_increase, mrv, min_conditional_power, k, one_stage)
-    # define model basis with indicator variables for all possible feasible configurations
-    println("creating IP model...")
     m = Model()
     @variable(m, # ind[x1, n1, n2, c2] == 1 iff n1 = n1, n2(x1) = n2, c2(x1) = c2
         ind[x1 in x1vals, n1 in n1vals, n2 in n2vals, c2 in c2vals; valid(x1, n1, n2, c2)],
         Bin
     )
-    @printf "done, IP model with %i variables created.\n\r" length(ind)
     # need to make sure that exactly one n1 value is selected, IP or trick via
     # auxiliary variables: n1_selected[n1] == 1 iff n1 = n1
     @variable(m, n1_selected[n1 in n1vals], Bin)
@@ -48,7 +49,6 @@ function get_optimal_design(
         @variable(m, n2_selected[n2 in n2vals], Bin)
         @constraint(m, sum(n2_selected[n2] for n2 in n2vals) == 1)
     end
-    println("defining feasibility constraints...")
     # implement all constraints conditional on n1
     for n1 in n1vals
         # make sure that n1_selected[n1] is 1 iff any of the other values is assigned
@@ -88,9 +88,7 @@ function get_optimal_design(
             end
         end
     end
-    println("done.")
-    println("defining type one error rate constraint...")
-    # maximal type one error rate constraint
+    # maximal type one error rate constraint, TODO: externalize?
     @constraint(m,
         sum(
             dbinom(x1, n1, p0) * power(x1, n2, c2, p0) * ind[x1, n1, n2, c2] for
@@ -98,56 +96,39 @@ function get_optimal_design(
             valid(x1, n1, n2, c2)
         ) <= α
     )
-    println("done.")
-    println("defining power constraint...")
-    # power constraint
-    @constraint(m,
-        sum(
-            power(x1, n1, n2, c2, cprior) * predictive_pmf(x1, n1, cprior) * ind[x1, n1, n2, c2] for
-            x1 in x1vals, n1 in n1vals, n2 in n2vals, c2 in c2vals if
-            valid(x1, n1, n2, c2)
-        ) >= 1 - β
+    params = Dict(
+        "prior"                 => prior,
+        "p0"                    => p0,
+        "α"                     => α,
+        "β"                     => β,
+        "mrv"                   => mrv,
+        "min_conditional_power" => min_conditional_power,
+        "one_stage"             => one_stage,
+        "group_sequential"      => group_sequential,
+        "nmax"                  => nmax,
+        "n1min"                 => n1min,
+        "n1max"                 => n1max,
+        "max_rel_increase"      => max_rel_increase,
+        "min_rel_increase"      => min_rel_increase,
+        "multiple"              => multiple,
+        "k"                     => k,
+        "cprior"                => cprior,
+        "n1vals"                => n1vals,
+        "x1vals"                => x1vals,
+        "n2vals"                => n2vals,
+        "c2vals_cont"           => c2vals_cont,
+        "c2vals_stop"           => c2vals_stop,
+        "c2vals"                => c2vals,
+        "cprior"                => cprior,
+        "valid"                 => valid
     )
-    println("done.")
-    println("defining objective...")
-    # objective: minimize expected sample size
-    @objective(m, Min,
-        sum(
-            (n1 + n2) * predictive_pmf(x1, n1, prior) * ind[x1, n1, n2, c2] for
-            x1 in x1vals, n1 in n1vals, n2 in n2vals, c2 in c2vals if
-            valid(x1, n1, n2, c2)
-        )
+    vars = Dict(
+        "ind"         => ind,
+        "n1_selected" => n1_selected
     )
-    println("done.")
-    optimize!(m, with_optimizer(GLPK.Optimizer, msg_lev = verbose, tm_lim = 1000*max_seconds))
-    termination_status(m)
-    # todo: check solution!
-    objective_value(m)
-    vals = value.(ind)
-    # find n1
-    n1 = n1vals[findfirst(value.(n1_selected).data .== 1.0)]
-    # extract solution
-    c2_res = convert(Vector{CriticalValue}, repeat([EarlyFutility], n1 + 1))
-    n2_res = zeros(n1 + 1)
-    for x1 in 0:n1
-        cntr = 0 # make sure we have a proper solutipon
-        for n2 in n2vals, c2 in c2vals
-            if valid(x1, n1, n2, c2)
-                if vals[x1, n1, n2, c2] == 1
-                    c2_res[x1 + 1] = c2
-                    n2_res[x1 + 1] = n2
-                    cntr          += 1
-                end
-            end
-        end
-        cntr  > 1 ? println([x1 cntr]) : nothing
-        cntr == 0 ? println([x1 cntr]) : nothing
-    end
-    # check solution
-    return Design(n2_res, c2_res)
+    return DesignIPModel(m, vars, params)
+
 end
-
-
 
 function valid_(x1, n1, n2, c2, nmax, p0, α, cprior, n1min, n1max, max_rel_increase, min_rel_increase, mrv, min_conditional_power, k, one_stage)
 

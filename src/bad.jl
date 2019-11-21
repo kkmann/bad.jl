@@ -21,10 +21,25 @@ export is_proper, condition, update, predictive_pmf, mean, expected_value
 include("Beta.jl")
 export Beta
 
-include("Design.jl")
-export Design, n, n1, n2, c2, power, probability, reject_null
+include("AbstractDesign.jl")
+export n, n1, n2, c2, early_futility, early_efficacy, power, probability, reject_null
 
-include("optimize.jl")
-export get_optimal_design
+include("Design.jl")
+export Design
+
+include("DesignIPModel.jl")
+export DesignIPModel
+
+include("OptimalDesign.jl")
+export OptimalDesign
+
+include("optimise.jl")
+export optimise
+
+include("ExpectedPowerConstraint.jl")
+export minimal_expected_power
+
+include("ExpectedSampleSize.jl")
+export minimize_expected_sample_size
 
 end # module

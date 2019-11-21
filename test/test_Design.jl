@@ -1,6 +1,12 @@
-prior  = Beta(mean = .4, sd = .1)
+prior  = Beta(mean = .5, sd = .05)
 p0     = .2
 α, β   = .05, .2
+tmp    = DesignIPModel(prior, p0, α, β) +
+    minimal_expected_power(.8) +
+    minimize_expected_sample_size() |>
+    optimise
+tmp
+
 ts = get_optimal_design(prior, p0, α, β; verbose = 3)
 gs = get_optimal_design(prior, p0, α, β; verbose = 3, group_sequential = true)
 os = get_optimal_design(prior, p0, α, β; verbose = 3, one_stage = true)
