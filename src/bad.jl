@@ -16,7 +16,7 @@ EarlyFutility, EarlyEfficacy = Futility(), Efficacy()
 export Futility, Efficacy, CriticalValue, valid, EarlyFutility, EarlyEfficacy
 
 include("Prior.jl")
-export condition, update, predictive_pmf, mean
+export is_proper, condition, update, predictive_pmf, mean
 
 include("Beta.jl")
 export Beta

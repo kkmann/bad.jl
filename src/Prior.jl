@@ -4,41 +4,14 @@ abstract type Prior end
 Base.iterate(design::Prior, state = 0) = state > 0 ? nothing : (design, state + 1)
 Base.length(design::Prior) = 1
 
-
-
-struct WeightedPrior
-    ω::Real
-    prior::Prior
-end
-*(ω::Real, prior::Prior) = WeightedPrior(ω, prior)
-
-# make weighted priors iterable
-Base.iterate(design::WeightedPrior, state = 0) = state > 0 ? nothing : (design, state + 1)
-Base.length(design::WeightedPrior) = 1
-
-condition(wprior::WeightedPrior; low::T = prior.low, high::T = prior.high) where {T<:Real} =
-    wprior.ω * condition(wprior.prior; low = low, high = high)
-
-function update(wprior::WeightedPrior, x::Int, n::Int) where {T<:Real}
-    wprior.ω * update(wprior.prior, x, n)
-end
-
-integrate(wprior::WeightedPrior, values_on_pivots) = wprior.ω * integrate(wprior.prior, values_on_pivots)
-
-mean(wprior::WeightedPrior) = wprior.ω * mean(wprior.prior)
-
-function predictive_pmf(x, n, wprior::WeightedPrior) where {T<:Real}
-    wprior.ω * integrate(wprior.prior, dbinom.(x, n, prior.pivots))
-end
-
-
-
 struct MixturePrior <: Prior
     ω::Vector{Real}
     priors::Vector{Prior}
 end
+*(ω::Real, prior::Prior) = MixturePrior([ω], [prior])
++(φ::MixturePrior, η::MixturePrior) = MixturePrior(vcat(φ.ω, η.ω), vcat(φ.priors, η.priors))
 
-+(φ::WeightedPrior, η::WeightedPrior) = sum([φ.ω, η.ω]) == 1 ? MixturePrior([φ.ω, η.ω], [φ.prior, η.prior]) : error("weights must sum to 1")
+is_proper(mprior::MixturePrior) = sum(mprior.ω) == 1
 
 condition(mprior::MixturePrior; low::T1 = 0., high::T1 = 1.) where {T1<:Real, T2<:Real} =
     MixturePrior(mprior.ω,  condition.(mprior.priors; low = low, high = high))
