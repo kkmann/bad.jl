@@ -1,10 +1,16 @@
-prior = PointMass(0.4)
-p0    = .2
-α, β  = .05, .2
+p0, α     = .2, .05
+prior, β  = PointMass(0.4), .1
+ts        = DesignIPModel(prior, p0, α, β) +
+        minimal_expected_power(1 - β) +
+        minimize_expected_sample_size() |>
+        optimise
 
-ts = DesignIPModel(prior, p0, α, β) +
-    minimal_expected_power(.8) +
-    minimize_expected_sample_size() |>
-    optimise
+mle = MaximumLikelihoodEstimator()
+p   = 0:.01:1
+bias.(p, mle, ts)
+sqrt.(mean_squared_error.(p, mle, ts))
 
-estimator = MaximumLikelihoodEstimator
+
+
+space = sample_space(ts)
+probability.(space[:,1], space[:,2], ts, .3) |> sum

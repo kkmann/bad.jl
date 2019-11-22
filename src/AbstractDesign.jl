@@ -30,11 +30,10 @@ early_efficacy(design::AbstractDesign) = any(design.c2 .== EarlyEfficacy) ? find
 c2(design::AbstractDesign, x1::Int) = valid(design, x1) ? design.c2[x1 + 1] : error("0 <= x1 <= n1 violated")
 
 function probability(x1::Int, x2::Int, design::AbstractDesign, p::T) where {T<:Real}
-    !valid(design, x1) ? (return 0.0) : nothing
-    nn, nn2 = n(design, x1), n2(design, x1)
-    return !(0 <= x2 <= nn2) ? 0 : p^(x1 + x2)*(1 - p)^(nn - x1 - x2) * dbinom(x1, n1(design), p) * dbinom(x2, nn2, p)
+    !valid(design, x1, x2) ? (return 0.0) : nothing
+    return dbinom(x1, n1(design), p)*dbinom(x2, n2(design, x1), p)
 end
-probability(x1::Int, x2::Int, design::AbstractDesign, Prior::Prior) = integrate(Prior, probability.(x1, x2, design, Prior.pivots))
+probability(x1::Int, x2::Int, design::AbstractDesign, Prior::Prior) = expected_value(p -> probability(x1, x2, design, p), prior)
 
 function probability(x1::Int, design::AbstractDesign, p::T) where {T<:Real}
     !valid(design, x1) ? (return 0.0) : nothing
@@ -67,7 +66,10 @@ power(x1::Int, design::AbstractDesign, cprior::Prior) = expected_value(p -> powe
 power(design::AbstractDesign, p::T) where {T<:Real} = sum(probability.(0:n1(design), design, p) .* power.(0:n1(design), design, p))
 power(design::AbstractDesign, cprior::Prior) = expected_value(p -> power.(design, p), cprior)
 
-
+sample_space(design::AbstractDesign) =
+    [ [x1, x2] for x1 in 0:n1(design), x2 in 0:maximum(design.n2) if valid(design, x1, x2) ] |>
+    x -> hcat(x...)' |>
+    x -> convert(Array{Int,2}, x)
 
 function reject_null(x1::Int, x2::Int, design::AbstractDesign)
     !valid(design, x1, x2) ? error("invalid x1 / x2 for given design") : nothing

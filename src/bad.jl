@@ -25,7 +25,8 @@ include("priors/PointMass.jl")
 export PointMass
 
 include("AbstractDesign.jl")
-export n, n1, n2, c2, early_futility, early_efficacy, power, probability, reject_null
+export n, n1, n2, c2, early_futility, early_efficacy, power, probability,
+    reject_null, sample_space
 
 include("Design.jl")
 export Design
@@ -46,8 +47,18 @@ include("objectives/ExpectedSampleSize.jl")
 export minimize_expected_sample_size
 
 include("Estimator.jl")
+export bias, mean_squared_error
 
 include("estimators/MaximumLikelihoodEstimator.jl")
 export MaximumLikelihoodEstimator
+
+include("estimators/PosteriorMeanEstimator.jl")
+export PosteriorMeanEstimator
+
+include("Ordering.jl")
+export p_value
+
+include("orderings/EstimatorOrdering.jl")
+export EstimatorOrdering
 
 end # module
