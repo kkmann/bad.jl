@@ -41,7 +41,7 @@ include("optimise.jl")
 export optimise
 
 include("constraints/ExpectedPowerConstraint.jl")
-export minimal_expected_power
+export expected_power_constraint
 
 include("objectives/ExpectedSampleSize.jl")
 export minimize_expected_sample_size
@@ -56,9 +56,15 @@ include("estimators/PosteriorMeanEstimator.jl")
 export PosteriorMeanEstimator
 
 include("Ordering.jl")
-export p_value
+export smaller_or_equal, strictly_smaller, larger_or_equal, strictly_larger, p_value
 
 include("orderings/EstimatorOrdering.jl")
 export EstimatorOrdering
+
+include("ConfidenceInterval.jl")
+export ConfidenceInterval
+
+include("confidence-intervals/ClopperPearsonInterval.jl")
+export ClopperPearsonInterval
 
 end # module
