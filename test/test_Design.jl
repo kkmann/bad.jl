@@ -4,7 +4,7 @@ p0    = .2
 
 get_optimal_design(prior, p0, α, β; group_sequential = false, one_stage = false) =
     DesignIPModel(prior, p0, α, β; group_sequential = group_sequential, one_stage = one_stage) +
-    expected_power_constraint() +
+    minimal_expected_power(prior, p0, 1 - β) +
     minimize_expected_sample_size() |>
     optimise
 
@@ -15,6 +15,6 @@ os2 = DesignIPModel(prior, p0, α, β;
         nmax = 32, n1min = 32, n1max = 32,
         one_stage = true
     ) +
-    expected_power_constraint() +
+    minimal_expected_power(prior, p0, 1 - β) +
     minimize_expected_sample_size() |>
     optimise

@@ -39,8 +39,10 @@ export optimise
 
 
 include("constraints/ExpectedPowerConstraint.jl")
-export expected_power_constraint
+export minimal_expected_power
 
+include("constraints/TypeOneErrorRateConstraints.jl")
+export maximal_type_one_error_rate
 
 
 include("objectives/ExpectedSampleSize.jl")

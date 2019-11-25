@@ -1,7 +1,7 @@
 p0, α     = .2, .05
 prior, β  = PointMass(0.4), .2
 design    = DesignIPModel(prior, p0, α, β) +
-        expected_power_constraint() +
+        minimal_expected_power(prior, p0, 1 - β) +
         minimize_expected_sample_size() |>
         optimise
 
