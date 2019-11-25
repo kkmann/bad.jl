@@ -11,7 +11,7 @@ import QuadGK.quadgk, QuadGK.gauss
 using JuMP, GLPK
 GLPK.jl_set_preemptive_check(false) # faster!
 
-include("Prior.jl")
+include("priors/Prior.jl")
 export is_proper, condition, update, predictive_pmf, mean, expected_value
 
 include("util.jl")
@@ -24,29 +24,31 @@ export Beta
 include("priors/PointMass.jl")
 export PointMass
 
-include("AbstractDesign.jl")
-export n, n1, n2, c2, early_futility, early_efficacy, power, probability,
-    reject_null, sample_space
 
-include("Design.jl")
-export Design
 
 include("DesignIPModel.jl")
 export DesignIPModel
 
-include("OptimalDesign.jl")
-export OptimalDesign
+include("designs.jl")
+export Design, OptimalDesign, n1, n2, c2, early_futility, early_efficacy, power, probability,
+    reject_null, sample_space
 
 include("optimise.jl")
 export optimise
 
+
+
 include("constraints/ExpectedPowerConstraint.jl")
 export expected_power_constraint
+
+
 
 include("objectives/ExpectedSampleSize.jl")
 export minimize_expected_sample_size
 
-include("Estimator.jl")
+
+
+include("estimators/Estimator.jl")
 export bias, mean_squared_error
 
 include("estimators/MaximumLikelihoodEstimator.jl")
@@ -55,13 +57,17 @@ export MaximumLikelihoodEstimator
 include("estimators/PosteriorMeanEstimator.jl")
 export PosteriorMeanEstimator
 
-include("Ordering.jl")
+
+
+include("orderings/Ordering.jl")
 export smaller_or_equal, strictly_smaller, larger_or_equal, strictly_larger, p_value
 
 include("orderings/EstimatorOrdering.jl")
 export EstimatorOrdering
 
-include("ConfidenceInterval.jl")
+
+
+include("confidence-intervals/ConfidenceInterval.jl")
 export ConfidenceInterval
 
 include("confidence-intervals/ClopperPearsonInterval.jl")
