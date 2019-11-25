@@ -1,5 +1,7 @@
-dbinom(x::TI, n::TI, p::TR) where{TI<:Integer, TR<:Real} = pdf(Distributions.Binomial(n, p), x)
-pbinom(x::TI, n::TI, p::TR) where{TI<:Integer, TR<:Real} = cdf(Distributions.Binomial(n, p), x)
+dbinom(x::Int, n::Int, p::T) where {T<:Real} = pdf(Distributions.Binomial(n, p), x)
+dbinom(x::Int, n::Int, p::T) where {T<:Prior} = expected_value(p -> dbinom(x, n, p), p)
+pbinom(x::Int, n::Int, p::T) where {T<:Real} = cdf(Distributions.Binomial(n, p), x)
+pbinom(x::Int, n::Int, p::T) where {T<:Prior} = expected_value(p -> pbinom(x, n, p), p)
 dbeta(p::T, a::T, b::T) where{T<:Real} = pdf(Distributions.Beta(a, b), p)
 pbeta(p::T, a::T, b::T) where{T<:Real} = cdf(Distributions.Beta(a, b), p)
 
@@ -65,4 +67,37 @@ function to_numeric(c2)
     c2 == EarlyFutility ? (return Inf) : nothing
     c2 == EarlyEfficacy ? (return -Inf) : nothing
     return convert(Float64, c2)
+end
+
+
+power(n::Int, c::Futility, p::T) where {T<:Union{Real,Prior}} = 0.0
+power(n::Int, c::Efficacy, p::T) where {T<:Union{Real,Prior}} = 1.0
+power(n::Int, c::Int, p::T) where {T<:Real} = 1 - pbinom(c, n, p)
+power(n::Int, c::Int, prior::Prior) = expected_value(p -> power(n, c, p), prior)
+
+power(x1::Int, n1::Int, n2::Int, c2::Futility, prior::Prior) = 0.0
+power(x1::Int, n1::Int, n2::Int, c2::Efficacy, prior::Prior) = 1.0
+power(x1::Int, n1::Int, n2::Int, c2::Int, prior::Prior) = expected_value(p -> power(n2, c2, p), update(prior, x1, n1))
+
+function power(p::T, xx1::Int, nn1::Int, xx2::Int, nn2::Int, n1::Int, n2::Vector{Int}, c2::Vector{Union{Int,CriticalValue}}) where {T<:Union{Real,Prior}}
+    any(length.((n2, c2)) .!= n1 + 1) ? error("n2/c2 must be of length n1 + 1") : nothing
+    if nn2 >= n2[xx1 + 1] # everything done
+        return reject_null(xx2, c2[xx1 + 1]) ? 1.0 : 0.0
+    else
+        if nn2 > 0 # in stage two, nn1 = n1
+            return power(n2[xx1 + 1] - nn2, c2[xx1 + 1] - xx2, p)
+        else # in stage one
+            x1_delta = 0:(n1 - nn1)
+            x1       = xx1 .+ x1_delta
+            return sum( dbinom.(x1_delta, n1 - nn1, p) .* power.(n2[x1 .+ 1], c2[x1 .+ 1], p) )
+        end
+    end
+end
+
+function power(p::T, x::Vector{Bool}, n1::Int, n2::Vector{Int}, c2::Vector{Union{Int,CriticalValue}}) where {T<:Union{Real,Prior}}
+    nn1 = min(length(x), n1)
+    xx1 = sum(x[1:nn1])
+    nn2 = min(length(x) - nn1, n2[xx1 + 1])
+    xx2 = sum(x[(nn1 + 1):nn2])
+    return power(p, xx1, nn1, xx2, nn2, n1, n2, c2)
 end

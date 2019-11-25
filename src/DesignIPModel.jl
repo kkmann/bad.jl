@@ -91,7 +91,7 @@ function DesignIPModel(
     # maximal type one error rate constraint, TODO: externalize?
     @constraint(m,
         sum(
-            dbinom(x1, n1, p0) * power(x1, n2, c2, p0) * ind[x1, n1, n2, c2] for
+            dbinom(x1, n1, p0) * power(n2, c2, p0) * ind[x1, n1, n2, c2] for
             x1 in x1vals, n1 in n1vals, n2 in n2vals, c2 in c2vals if
             valid(x1, n1, n2, c2)
         ) <= α

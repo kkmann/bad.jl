@@ -11,12 +11,12 @@ import QuadGK.quadgk, QuadGK.gauss
 using JuMP, GLPK
 GLPK.jl_set_preemptive_check(false) # faster!
 
+include("Prior.jl")
+export is_proper, condition, update, predictive_pmf, mean, expected_value
+
 include("util.jl")
 EarlyFutility, EarlyEfficacy = Futility(), Efficacy()
 export Futility, Efficacy, CriticalValue, valid, EarlyFutility, EarlyEfficacy
-
-include("Prior.jl")
-export is_proper, condition, update, predictive_pmf, mean, expected_value
 
 include("priors/Beta.jl")
 export Beta
