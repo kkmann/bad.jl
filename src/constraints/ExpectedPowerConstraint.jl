@@ -37,3 +37,17 @@ function add!(jump_model, ind, cnstr::ExpectedPowerConstraint, problem::Problem)
         ) >= cnstr.threshold
     )
 end
+
+function add!(jump_model, ind, cnstr::ExpectedPowerConstraint, problem::Problem, xx1, nn1, old_design::AbstractDesign)
+    ccprior = update(cnstr.cprior, xx1, nn1)
+    @constraint(jump_model,
+        sum(
+            power(x1, n1, n2, c2, cnstr.cprior) * dbinom(x1 - xx1, n1 - nn1, ccprior) * ind[n1, x1, n2, c2] for
+                n1 in n1vals(problem),
+                x1 in x1vals(n1, problem),
+                n2 in n2vals(n1, x1, problem),
+                c2 in c2vals(n1, x1, n2, problem) if
+            n1 >= nn1
+        ) >= power(cnstr.cprior, xx1, nn1, old_design)
+    )
+end

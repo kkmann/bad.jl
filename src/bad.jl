@@ -7,19 +7,22 @@ import ProgressMeter.@showprogress
 
 import Printf.@printf, Printf.@sprintf
 
-import Distributions, Distributions.pdf, Distributions.cdf
+import SpecialFunctions.gamma, SpecialFunctions.beta_inc
+
+import Distributions
 
 import QuadGK.quadgk, QuadGK.gauss
 
 using JuMP, GLPK
 GLPK.jl_set_preemptive_check(false) # faster!
 
+import DataFrames
+
 include("priors/Prior.jl")
 export is_proper, condition, update, predictive_pmf, mean, expected_value
 
 include("util.jl")
-EarlyFutility, EarlyEfficacy = Futility(), Efficacy()
-export Futility, Efficacy, CriticalValue, valid, EarlyFutility, EarlyEfficacy
+export valid
 
 include("priors/Beta.jl")
 export Beta
@@ -30,8 +33,11 @@ export PointMass
 
 
 include("designs.jl")
-export Design, OptimalDesign, n1, n2, c2, early_futility, early_efficacy, power, probability,
+export Design, OptimalDesign, n1, n2, c2, early_futility, early_efficacy, probability,
     reject_null, sample_space
+
+include("power.jl")
+export power
 
 
 

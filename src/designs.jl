@@ -25,8 +25,8 @@ n1(design::AbstractDesign)          = length(design.n2) - 1
 n2(design::AbstractDesign, x1::Int) = valid(design, x1) ? design.n2[x1 + 1] : error("0 <= x1 <= n1 violated")
 n(design::AbstractDesign, x1::Int)  = n1(design) + n2(design, x1)
 
-early_futility(design::AbstractDesign) = any(design.c2 .== EarlyFutility) ? findlast(design.c2 .== EarlyFutility) - 1 : -1
-early_efficacy(design::AbstractDesign) = any(design.c2 .== EarlyEfficacy) ? findfirst(design.c2 .== EarlyEfficacy) - 1 : n1(design) + 1
+early_futility(design::AbstractDesign) = any(design.c2 .== Inf) ? findlast(design.c2 .== Inf) - 1 : -1
+early_efficacy(design::AbstractDesign) = any(design.c2 .== -Inf) ? findfirst(design.c2 .== -Inf) - 1 : n1(design) + 1
 c2(design::AbstractDesign, x1::Int) = valid(design, x1) ? design.c2[x1 + 1] : error("0 <= x1 <= n1 violated")
 
 function probability(x1::Int, x2::Int, design::AbstractDesign, p::T) where {T<:Real}
@@ -64,7 +64,7 @@ sample_space(design::AbstractDesign) =
     x -> hcat(x...)' |>
     x -> convert(Array{Int,2}, x)
 
-reject_null(x2::Int, c2::CriticalValue) = x2 > c2
+reject_null(x2::Int, c2::Real) = x2 > c2
 
 function reject_null(x1::Int, x2::Int, design::AbstractDesign)
     !valid(design, x1, x2) ? error("invalid x1 / x2 for given design") : nothing
@@ -86,12 +86,12 @@ end
 
 mutable struct Design <: AbstractDesign
     n2::Vector{Int}
-    c2::Vector{CriticalValue}
-    function Design(n2::Vector{N2}, c2::Vector{C2}) where {N2<:Integer, C2<:CriticalValue}
+    c2::Vector{Real}
+    function Design(n2::Vector{N2}, c2::Vector{C2}) where {N2<:Integer, C2<:Real}
         !all(0 .<= n2) ? error("n must be positive") : nothing
         # ToDo: check for ineffective stopping (n2 > 0 and early stopping)
         length(n2) != length(c2) ? error("n and c must be of equal length") : nothing
         new(n2, c2)
     end
 end
-Design(n2, c2) = Design(convert(Vector{Integer}, n2), convert(Vector{CriticalValue}, c2))
+Design(n2, c2) = Design(convert(Vector{Integer}, n2), convert(Vector{Real}, c2))

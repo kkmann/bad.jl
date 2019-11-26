@@ -23,7 +23,7 @@ function Problem(
     )
 
     !any(type .== (:TwoStage, :OneStage, :GroupSequential)) ? error("invalid type specification") : nothing
-    nmax > 200 ? (@warn "nmax > 200, consider a continuous approximation using the R package 'adoptr'.") : nothing
+    nmax > 150 ? (@warn "nmax > 150, consider a continuous approximation using the R package 'adoptr'.") : nothing
 
     return Problem(
         objective,
@@ -73,7 +73,7 @@ end
 
 function c2vals(n1, x1, n2, problem::Problem)
     c2 = collect(0:(n2 - 1))
-    c2 = vcat( [EarlyFutility, EarlyEfficacy], c2 )
+    c2 = vcat( [-Inf], c2, [Inf])
     return c2[valid.(n1, x1, n2, c2, [problem.toer]) .& valid.(n1, x1, n2, c2, [problem.power])]
 end
 
@@ -123,9 +123,9 @@ function get_IP_model(problem::Problem)
                 if problem.params["type"] == :GroupSequential # wrong!
                     for n2 in n2vals(n1, x1, problem)
                         @constraint(m,
-                            sum( ind[n1, x1, n2, c2] for c2 in c2vals(n1, x1, n2, problem) if !early_stop(c2) ) +
-                                sum( ind[n1, x1, nn2, c2] for nn2 in n2vals(n1, x1, problem), c2 in c2vals(n1, x1, nn2, problem) if c2 == EarlyEfficacy )>=
-                            sum( ind[n1, x1 - 1, n2, c2] for c2 in c2vals(n1, x1 - 1, n2, problem) if !early_stop(c2) )
+                            sum( ind[n1, x1, n2, c2] for c2 in c2vals(n1, x1, n2, problem) if isfinite(c2) ) +
+                                sum( ind[n1, x1, nn2, c2] for nn2 in n2vals(n1, x1, problem), c2 in c2vals(n1, x1, nn2, problem) if c2 == -Inf )>=
+                            sum( ind[n1, x1 - 1, n2, c2] for c2 in c2vals(n1, x1 - 1, n2, problem) if isfinite(c2) )
                         )
                     end
                 end
@@ -133,12 +133,12 @@ function get_IP_model(problem::Problem)
             # make sure we have contiguous stopping for efficacy / futility
             if x1 > 0
                 @constraint(m,
-                    ind[n1, x1 - 1, 0, EarlyFutility] >= ind[n1, x1, 0, EarlyFutility]
+                    ind[n1, x1 - 1, 0, Inf] >= ind[n1, x1, 0, Inf]
                 )
             end
             if x1 < n1
                 @constraint(m,
-                    ind[n1, x1 + 1, 0, EarlyEfficacy] >= ind[n1, x1, 0, EarlyEfficacy]
+                    ind[n1, x1 + 1, 0, -Inf] >= ind[n1, x1, 0, -Inf]
                 )
             end
         end
@@ -153,7 +153,7 @@ end
 
 mutable struct OptimalDesign <: AbstractDesign
     n2::Vector{Int}
-    c2::Vector{CriticalValue}
+    c2::Vector{Real}
     model::Problem
     score::Real
     # check n2/c2
@@ -173,7 +173,7 @@ function optimise(problem::Problem; verbosity = 3, timelimit = 300)
     # find n1
     n1 = n1vals(problem)[findfirst(value.(n1_selected).data .== 1.0)]
     # extract solution
-    c2_res = convert(Vector{CriticalValue}, repeat([EarlyFutility], n1 + 1))
+    c2_res = repeat([Inf], n1 + 1)
     n2_res = zeros(n1 + 1)
     for x1 in x1vals(n1, problem)
         cntr = 0 # make sure we have a proper solutipon
