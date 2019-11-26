@@ -1,7 +1,11 @@
-struct ExpectedSampleSize <: Objective
+mutable struct ExpectedSampleSize <: Objective
     prior::Prior
 end
 minimise_expected_sample_size(prior) = ExpectedSampleSize(prior)
+
+function update!(objective::ExpectedSampleSize, prior::Prior)
+    objective.prior = prior
+end
 
 function add!(jump_model, ind, objective::ExpectedSampleSize, problem::Problem)
     @objective(jump_model, Min,

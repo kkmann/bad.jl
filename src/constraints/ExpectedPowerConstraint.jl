@@ -1,4 +1,4 @@
-struct ExpectedPowerConstraint <: PowerConstraint
+mutable struct ExpectedPowerConstraint <: PowerConstraint
     threshold::Real
     conditional_threshold::Real
     cprior::Prior
@@ -25,6 +25,10 @@ end
 
 p1(cnstr::ExpectedPowerConstraint) = mean(cnstr.cprior)
 β(cnstr::ExpectedPowerConstraint) = 1 - cnstr.threshold
+
+function update!(cnstr::ExpectedPowerConstraint, prior::Prior; mrv = cnstr.cprior.low)
+    cnstr.cprior = condition(prior, low = mrv)
+end
 
 function add!(jump_model, ind, cnstr::ExpectedPowerConstraint, problem::Problem)
     @constraint(jump_model,

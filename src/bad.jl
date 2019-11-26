@@ -42,6 +42,8 @@ export power
 
 
 include("constraints/constraints.jl")
+export update!
+
 include("objectives/Objective.jl")
 
 include("Problem.jl")

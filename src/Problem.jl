@@ -1,8 +1,13 @@
-struct Problem
+mutable struct Problem
     objective::Objective
     toer::TypeOneErrorRateConstraint
     power::PowerConstraint
-    params::Dict{String,Any}
+    n1values:: Vector{Int}
+    nmax::Int
+    max_rel_increase::Real
+    min_rel_increase::Real
+    min_abs_increase::Int
+    type::Symbol
 end
 
 function Problem(
@@ -21,51 +26,50 @@ function Problem(
         min_rel_increase::Real       = 1.1,
         min_abs_increase::Int        = 5
     )
-
     !any(type .== (:TwoStage, :OneStage, :GroupSequential)) ? error("invalid type specification") : nothing
     nmax > 150 ? (@warn "nmax > 150, consider a continuous approximation using the R package 'adoptr'.") : nothing
-
+    n1values = (length(n1values) > 0) ? n1values : collect(n1min:n1max)
     return Problem(
         objective,
         toer,
         power,
-        Dict(
-            "type"             => type,
-            "nmax"             => nmax,
-            "n1min"            => n1min,
-            "n1max"            => n1max,
-            "n1values"         => n1values,
-            "max_rel_increase" => max_rel_increase,
-            "min_rel_increase" => min_rel_increase,
-            "min_abs_increase" => min_abs_increase
-        )
+        n1values,
+        nmax,
+        max_rel_increase,
+        min_rel_increase,
+        min_abs_increase,
+        type
     )
 end
 
-n1vals(problem::Problem) = (length(problem.params["n1values"]) > 0) ? problem.params["n1values"] : collect(problem.params["n1min"]:problem.params["n1max"])
+function update!(problem::Problem, prior::Prior)
+    update!(problem.objective, prior)
+    update!(problem.toer, prior)
+    update!(problem.power, prior)
+end
+
+n1vals(problem::Problem) = problem.n1values
 x1vals(n1, problem::Problem) = collect(0:n1)
 
 function n2vals(problem::Problem)
-    if problem.params["type"] == :OneStage
-        return [0]
-    end
+    problem.type == :OneStage ? (return [0]) : nothing
+    n1min = min(n1vals(problem))
+    n1max = max(n1vals(problem))
     n2min = max(
-        problem.params["min_abs_increase"],
-        Int(ceil(problem.params["n1min"] * problem.params["min_rel_increase"])) - problem.params["n1min"]
+        problem.min_abs_increase,
+        Int(ceil(n1min * problem.min_rel_increase)) - n1min
     )
     n2max = min(
-        problem.params["nmax"] - problem.params["n1min"],
-        Int(floor(problem.params["n1max"] * (problem.params["max_rel_increase"]))) - problem.params["n1max"]
+        problem.nmax - n1min,
+        Int(floor(n1max * problem.max_rel_increase)) - n1max
     )
     n2 = collect(n2min:n2max)
     return n2min > 0 ? vcat( [0], n2 ) : n2
 end
 function n2vals(n1, x1, problem::Problem)
-    if problem.params["type"] == :OneStage
-        return [0]
-    end
-    n2min = max(problem.params["min_abs_increase"], Int(ceil(n1*problem.params["min_rel_increase"])) - n1)
-    n2max = min(problem.params["nmax"] - n1, Int(floor(n1 * (problem.params["max_rel_increase"]))) - n1)
+    problem.type == :OneStage ? (return [0]) : nothing
+    n2min = max(problem.min_abs_increase, Int(ceil(n1*problem.min_rel_increase)) - n1)
+    n2max = min(problem.nmax - n1, Int(floor(n1*(problem.max_rel_increase))) - n1)
     n2    = collect(n2min:n2max)
     n2    = n2min > 0 ? vcat( [0], n2 ) : n2
     return n2[valid.(n1, x1, n2, [problem.toer]) .& valid.(n1, x1, n2, [problem.power])]
@@ -97,7 +101,7 @@ function get_IP_model(problem::Problem)
     @showprogress for n1 in n1vals(problem)
         # make sure that n1_selected[n1] is 1 iff any of the other values is assigned
         @constraint(m,
-            2*problem.params["nmax"] * n1_selected[n1] >= sum(
+            2*problem.nmax * n1_selected[n1] >= sum(
                 ind[n1, x1, n2, c2] for
                 x1 in x1vals(n1, problem), n2 in n2vals(n1, x1, problem), c2 in c2vals(n1, x1, n2, problem)
             )
@@ -120,7 +124,7 @@ function get_IP_model(problem::Problem)
                         n2 in n2vals(n1, x1 - 1, problem), c2 in c2vals(n1, x1 - 1, n2, problem)
                     )
                 )
-                if problem.params["type"] == :GroupSequential # wrong!
+                if problem.type == :GroupSequential # wrong!
                     for n2 in n2vals(n1, x1, problem)
                         @constraint(m,
                             sum( ind[n1, x1, n2, c2] for c2 in c2vals(n1, x1, n2, problem) if isfinite(c2) ) +
