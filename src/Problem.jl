@@ -10,12 +10,12 @@ function Problem(
         toer::TypeOneErrorRateConstraint,
         power::PowerConstraint;
         type::Symbol                 = :TwoStage,
-        multiple::Real               = type == :OneStage ? 1.25 : 2,
+        multiple::Real               = 2,
         nmax::Int                    = guess_nmax(p0(toer), α(toer), p1(power), β(power); multiple = multiple),
         n1min_fctr::Real             = .25/multiple,
-        n1min::Int                   = type == :OneStage ? Int(round(max(.66*nmax, 5))) : Int(round(max(n1min_fctr * nmax, 5))),
+        n1min::Int                   = type == :OneStage ?  Int(round(nmax/multiple/2)) : Int(round(max(n1min_fctr * nmax, 5))),
         n1max_fctr::Real             = .66/multiple,
-        n1max::Int                   = type == :OneStage ? nmax : Int(round(max(n1min, n1max_fctr * nmax))),
+        n1max::Int                   = type == :OneStage ? Int(round(nmax)) : Int(round(max(n1min, n1max_fctr * nmax))),
         n1values::Vector{Int}        = zeros(Int, 0),
         max_rel_increase::Real       = 3.,
         min_rel_increase::Real       = 1.1,
@@ -93,10 +93,6 @@ function get_IP_model(problem::Problem)
     # auxiliary variables: n1_selected[n1] == 1 iff n1 = n1
     @variable(m, n1_selected[n1 in n1vals(problem)], Bin)
     @constraint(m, sum(n1_selected[n1] for n1 in n1vals(problem)) == 1)
-    if problem.params["type"] == :GroupSequential # same for n2 in group sequential case
-        @variable(m, n2_selected[n2 in n2vals(problem)], Bin)
-        @constraint(m, sum(n2_selected[n2] for n2 in n2vals(problem)) == 1)
-    end
     # implement all constraints conditional on n1
     @showprogress for n1 in n1vals(problem)
         # make sure that n1_selected[n1] is 1 iff any of the other values is assigned
@@ -106,18 +102,6 @@ function get_IP_model(problem::Problem)
                 x1 in x1vals(n1, problem), n2 in n2vals(n1, x1, problem), c2 in c2vals(n1, x1, n2, problem)
             )
         )
-        # make sure that n2_selected[n2] is 1 iff any of the other values is assigned
-        # if problem.params["type"] == :GroupSequential
-        #     for n2 in n2vals(problem)
-        #         @constraint(m,
-        #             2*problem.params["nmax"] * n2_selected[n2] >= sum(
-        #                 ind[n1, x1, n2, c2] for
-        #                 x1 in x1vals(n1, problem), nn2 in n2vals(n1, x1, problem), c2 in c2vals(n1, x1, n2, problem) if
-        #                 n2 == nn2
-        #             )
-        #         )
-        #     end
-        # end
         for x1 in x1vals(n1, problem)
             # make its a function in x1
             @constraint(m,
@@ -127,7 +111,7 @@ function get_IP_model(problem::Problem)
                 )
             )
             # make sure that n1(x1) is constant
-            if 0 < x1 < n1
+            if 0 < x1 <= n1
                 @constraint(m,
                     sum(ind[n1,     x1, n2, c2] for
                         n2 in n2vals(n1, x1, problem), c2 in c2vals(n1, x1, n2, problem)
@@ -136,11 +120,12 @@ function get_IP_model(problem::Problem)
                         n2 in n2vals(n1, x1 - 1, problem), c2 in c2vals(n1, x1 - 1, n2, problem)
                     )
                 )
-                if problem.params["type"] == :GroupSequential
+                if problem.params["type"] == :GroupSequential # wrong!
                     for n2 in n2vals(n1, x1, problem)
                         @constraint(m,
-                            sum( ind[n1, x1, n2, c2] for c2 in c2vals(n1, x1, n2, problem) ) ==
-                            sum( ind[n1, x1 - 1, n2, c2] for c2 in c2vals(n1, x1 - 1, n2, problem) )
+                            sum( ind[n1, x1, n2, c2] for c2 in c2vals(n1, x1, n2, problem) if !early_stop(c2) ) +
+                                sum( ind[n1, x1, nn2, c2] for nn2 in n2vals(n1, x1, problem), c2 in c2vals(n1, x1, nn2, problem) if c2 == EarlyEfficacy )>=
+                            sum( ind[n1, x1 - 1, n2, c2] for c2 in c2vals(n1, x1 - 1, n2, problem) if !early_stop(c2) )
                         )
                     end
                 end

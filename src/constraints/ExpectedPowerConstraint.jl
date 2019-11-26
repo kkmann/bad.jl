@@ -6,7 +6,7 @@ struct ExpectedPowerConstraint <: PowerConstraint
 end
 
 minimal_expected_power(prior::Prior, mrv::Real, threshold::Real;
-    conditional_threshold::Real = .5, power_curtail = 1) =
+    conditional_threshold::Real = .5, power_curtail = .999) =
     ExpectedPowerConstraint(threshold, conditional_threshold, condition(prior, low = mrv), power_curtail)
 
 function valid(n1, x1, n2, cnstr::ExpectedPowerConstraint)

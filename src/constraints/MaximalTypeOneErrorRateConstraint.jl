@@ -2,11 +2,10 @@ mutable struct MaximalTypeOneErrorRateConstraint <: TypeOneErrorRateConstraint
     p0::Real
     threshold::Real
     k::Int
-    pval_curtail::Real
 end
 
-maximal_type_one_error_rate(p0, α; k::Int = 5, pval_curtail = 1 - α) =
-    MaximalTypeOneErrorRateConstraint(p0, α, k, pval_curtail)
+maximal_type_one_error_rate(p0, α; k::Int = 2) =
+    MaximalTypeOneErrorRateConstraint(p0, α, k)
 
 function valid(n1, x1, n2, cnstr::MaximalTypeOneErrorRateConstraint)
     # if we continue, first stage p value must be rather large (buffer for multiple testing)

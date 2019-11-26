@@ -1,4 +1,4 @@
-using JuMP, Ipopt, Juniper
+using JuMP, Ipopt, Juniper, GLPK
 
 optimizer = Juniper.Optimizer
 params = Dict{Symbol,Any}()
@@ -13,5 +13,9 @@ f(x, y) = exp(x*y)
 register(m, :f, 2, f; autodiff = true)
 
 @NLobjective(m, Min, f(x, y))
+
+solver = JuniperSolver(IpoptSolver();
+                       mip_solver=GLPK.Solver(),
+                       registered_functions=[Juniper.register(:f,2,f,autodiff=true)])
 
 optimize!(m)
