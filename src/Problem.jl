@@ -46,20 +46,27 @@ n1vals(problem::Problem) = (length(problem.params["n1values"]) > 0) ? problem.pa
 x1vals(n1, problem::Problem) = collect(0:n1)
 
 function n2vals(problem::Problem)
+    if problem.params["type"] == :OneStage
+        return [0]
+    end
     n2min = max(
         problem.params["min_abs_increase"],
-        Int(ceil(n1*problem.params["min_rel_increase"])) - problem.params["n1min"]
+        Int(ceil(problem.params["n1min"] * problem.params["min_rel_increase"])) - problem.params["n1min"]
     )
     n2max = min(
         problem.params["nmax"] - problem.params["n1min"],
-        Int(floor(n1 * (problem.params["max_rel_increase"]))) - problem.params["n1min"]
+        Int(floor(problem.params["n1max"] * (problem.params["max_rel_increase"]))) - problem.params["n1max"]
     )
-    return n2min > 0 ? cat( [0], collect(n2min:n2max) ) : collect(n2min:n2max)
+    n2 = collect(n2min:n2max)
+    return n2min > 0 ? vcat( [0], n2 ) : n2
 end
 function n2vals(n1, x1, problem::Problem)
+    if problem.params["type"] == :OneStage
+        return [0]
+    end
     n2min = max(problem.params["min_abs_increase"], Int(ceil(n1*problem.params["min_rel_increase"])) - n1)
     n2max = min(problem.params["nmax"] - n1, Int(floor(n1 * (problem.params["max_rel_increase"]))) - n1)
-    n2 = collect(n2min:n2max)
+    n2    = collect(n2min:n2max)
     n2    = n2min > 0 ? vcat( [0], n2 ) : n2
     return n2[valid.(n1, x1, n2, [problem.toer]) .& valid.(n1, x1, n2, [problem.power])]
 end
@@ -100,16 +107,17 @@ function get_IP_model(problem::Problem)
             )
         )
         # make sure that n2_selected[n2] is 1 iff any of the other values is assigned
-        if problem.params["type"] == :GroupSequential
-            for n2 in n2vals
-                @constraint(m,
-                    2*problem.params["nmax"] * n2_selected[n2] >= sum(
-                        ind[n1, x1, n2, c2] for
-                        x1 in x1vals(n1, problem), n2 in n2vals(n1, x1, problem), c2 in c2vals(n1, x1, n2, problem)
-                    )
-                )
-            end
-        end
+        # if problem.params["type"] == :GroupSequential
+        #     for n2 in n2vals(problem)
+        #         @constraint(m,
+        #             2*problem.params["nmax"] * n2_selected[n2] >= sum(
+        #                 ind[n1, x1, n2, c2] for
+        #                 x1 in x1vals(n1, problem), nn2 in n2vals(n1, x1, problem), c2 in c2vals(n1, x1, n2, problem) if
+        #                 n2 == nn2
+        #             )
+        #         )
+        #     end
+        # end
         for x1 in x1vals(n1, problem)
             # make its a function in x1
             @constraint(m,
@@ -128,6 +136,14 @@ function get_IP_model(problem::Problem)
                         n2 in n2vals(n1, x1 - 1, problem), c2 in c2vals(n1, x1 - 1, n2, problem)
                     )
                 )
+                if problem.params["type"] == :GroupSequential
+                    for n2 in n2vals(n1, x1, problem)
+                        @constraint(m,
+                            sum( ind[n1, x1, n2, c2] for c2 in c2vals(n1, x1, n2, problem) ) ==
+                            sum( ind[n1, x1 - 1, n2, c2] for c2 in c2vals(n1, x1 - 1, n2, problem) )
+                        )
+                    end
+                end
             end
             # make sure we have contiguous stopping for efficacy / futility
             if x1 > 0
