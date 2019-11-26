@@ -1,36 +1,39 @@
-abstract type PowerConstraint end
-
 struct ExpectedPowerConstraint <: PowerConstraint
     threshold::Real
     conditional_threshold::Real
     cprior::Prior
+    power_curtail::Real
 end
 
-minimal_expected_power(prior::Prior, mrv::Real, threshold::Real; conditional_threshold::Real = .5) =
-    ExpectedPowerConstraint(threshold, conditional_threshold, condition(prior, low = mrv))
+minimal_expected_power(prior::Prior, mrv::Real, threshold::Real;
+    conditional_threshold::Real = .5, power_curtail = min(threshold + .1, .95)) =
+    ExpectedPowerConstraint(threshold, conditional_threshold, condition(prior, low = mrv), power_curtail)
+
+function valid(n1, x1, n2, cnstr::ExpectedPowerConstraint)
+    ( (power(x1, n1, cnstr.cprior) > cnstr.threshold) & (n2 > 0) ) ?
+            (return false) : true
+end
 
 function valid(n1, x1, n2, c2, cnstr::ExpectedPowerConstraint)
-    if cnstr.conditional_threshold > 0 # save time if not!
-        return !early_stop(c2) & (power(x1, n1, n2, c2, cnstr.cprior) <= cnstr.conditional_threshold) ? false : true
-    else
-        return true
+    if n2 > 0 # not stopping early
+        conditional_power = power(x1, n1, n2, c2, cnstr.cprior)
+        conditional_power <= cnstr.conditional_threshold ? (return false) : nothing
+        conditional_power >= cnstr.power_curtail ?  (return false) : nothing
     end
+    return true
 end
 
+p1(cnstr::ExpectedPowerConstraint) = mean(cnstr.cprior)
+β(cnstr::ExpectedPowerConstraint) = 1 - cnstr.threshold
 
-function +(model::DesignIPModel, cnstr::ExpectedPowerConstraint)
-    x1vals = model.params["x1vals"]
-    n1vals = model.params["n1vals"]
-    n2vals = model.params["n2vals"]
-    c2vals = model.params["c2vals"]
-    valid  = model.params["valid"]
-    ind    = model.vars["ind"]
-    @constraint(model.jump_model,
+function add!(jump_model, ind, cnstr::ExpectedPowerConstraint, problem::Problem)
+    @constraint(jump_model,
         sum(
-            power(x1, n1, n2, c2, cnstr.cprior) * predictive_pmf(x1, n1, cnstr.cprior) * ind[x1, n1, n2, c2] for
-            x1 in x1vals, n1 in n1vals, n2 in n2vals, c2 in c2vals if
-            valid(x1, n1, n2, c2)
+            power(x1, n1, n2, c2, cnstr.cprior) * dbinom(x1, n1, cnstr.cprior) * ind[n1, x1, n2, c2] for
+                n1 in n1vals(problem),
+                x1 in x1vals(n1, problem),
+                n2 in n2vals(n1, x1, problem),
+                c2 in c2vals(n1, x1, n2, problem)
         ) >= cnstr.threshold
     )
-    return model
 end

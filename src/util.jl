@@ -38,8 +38,8 @@ valid(p::T) where {T<:Real} = 0 <= p <= 1
 gauss_legendre = function(low, high, order::Integer)
     pivots, weights = gauss(order)
     a, b = (high - low)/2, (high + low)/2
-    scaled_pivots  = a.*pivots .+ b
-    scaled_weights = a.*weights
+    scaled_pivots  = a .* pivots .+ b
+    scaled_weights = a .* weights
     return(scaled_pivots, scaled_weights)
 end
 
@@ -48,19 +48,9 @@ gl_25_pivots, gl_25_weights = gauss_legendre(-1, 1, 25)
 gauss_legendre_25 = function(low, high)
     pivots, weights = gl_25_pivots, gl_25_weights
     a, b = (high - low)/2, (high + low)/2
-    scaled_pivots  = a.*pivots .+ b
-    scaled_weights = a.*weights
+    scaled_pivots  = a .* pivots .+ b
+    scaled_weights = a .* weights
     return(scaled_pivots, scaled_weights)
-end
-
-function guess_nmax(prior, p0, mrv, α, β; multiple = 2)
-    cprior  = condition(prior, low = mrv)
-    # heuristic for nmax: 2* sample size of fixed z test powered for prior mean
-    p1      = mean(cprior)
-    z_1_α   = Distributions.quantile(Distributions.Normal(), 1 - α)
-    z_1_β   = Distributions.quantile(Distributions.Normal(), 1 - β)
-    napprox = p1*(1 - p1)*( (z_1_α + z_1_β) / (p1 - p0) )^2
-    return Int(ceil(multiple * napprox))
 end
 
 function to_numeric(c2)
@@ -100,4 +90,12 @@ function power(p::T, x::Vector{Bool}, n1::Int, n2::Vector{Int}, c2::Vector{Union
     nn2 = min(length(x) - nn1, n2[xx1 + 1])
     xx2 = sum(x[(nn1 + 1):nn2])
     return power(p, xx1, nn1, xx2, nn2, n1, n2, c2)
+end
+
+
+function guess_nmax(p0::Real, α::Real, p1::Real, β::Real; multiple = 2)
+    z_1_α   = Distributions.quantile(Distributions.Normal(), 1 - α)
+    z_1_β   = Distributions.quantile(Distributions.Normal(), 1 - β)
+    napprox = p1*(1 - p1)*( (z_1_α + z_1_β) / (p1 - p0) )^2
+    return Int(ceil(multiple * napprox))
 end

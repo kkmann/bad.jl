@@ -5,6 +5,15 @@ p0    = .2
 get_optimal_design(prior, p0, α, β; group_sequential = false, one_stage = false) =
     DesignIPModel(prior, p0, α, β; group_sequential = group_sequential, one_stage = one_stage) +
     minimal_expected_power(prior, p0, 1 - β) +
+    minimise_expected_sample_size(prior)
+
+DesignIPModel(prior, p0, α, β; group_sequential = false, one_stage = false)
+
+get_optimal_design(prior, p0, α, β)
+
+get_optimal_design(prior, p0, α, β; group_sequential = false, one_stage = false) =
+    DesignIPModel(prior, p0, α, β; group_sequential = group_sequential, one_stage = one_stage) +
+    minimal_expected_power(prior, p0, 1 - β) +
     minimize_expected_sample_size() |>
     optimise
 

@@ -1,6 +1,9 @@
 module bad
 
-import Base.show, Base.isless, Base.isequal, Base.-, Base.+, Base.*, Base.string
+import Base.show, Base.isless, Base.isequal, Base.-, Base.+, Base.*, Base.string,
+    Base.convert
+
+import ProgressMeter.@showprogress
 
 import Printf.@printf, Printf.@sprintf
 
@@ -26,27 +29,30 @@ export PointMass
 
 
 
-include("DesignIPModel.jl")
-export DesignIPModel
-
 include("designs.jl")
 export Design, OptimalDesign, n1, n2, c2, early_futility, early_efficacy, power, probability,
     reject_null, sample_space
 
-include("optimise.jl")
-export optimise
+
+
+include("constraints/constraints.jl")
+include("objectives/Objective.jl")
+
+include("Problem.jl")
+export Problem, OptimalDesign, optimise
 
 
 
 include("constraints/ExpectedPowerConstraint.jl")
 export minimal_expected_power
 
-include("constraints/TypeOneErrorRateConstraints.jl")
+include("constraints/MaximalTypeOneErrorRateConstraint.jl")
 export maximal_type_one_error_rate
 
 
+
 include("objectives/ExpectedSampleSize.jl")
-export minimize_expected_sample_size
+export minimise_expected_sample_size
 
 
 
