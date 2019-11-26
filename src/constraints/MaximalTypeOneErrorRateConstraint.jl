@@ -7,6 +7,10 @@ end
 maximal_type_one_error_rate(p0, α; k::Int = 2) =
     MaximalTypeOneErrorRateConstraint(p0, α, k)
 
+function (cnstr::MaximalTypeOneErrorRateConstraint)(design::AbstractDesign)
+    power(design, cnstr.p0) - cnstr.threshold
+end
+
 function valid(n1, x1, n2, cnstr::MaximalTypeOneErrorRateConstraint)
     # if we continue, first stage p value must be rather large (buffer for multiple testing)
     ( (x1 > findfirst(1 .- pbinom.(0:n1, n1, cnstr.p0) .<= cnstr.threshold) + cnstr.k) & (n2 > 0) ) ?

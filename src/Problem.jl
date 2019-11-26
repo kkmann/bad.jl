@@ -22,7 +22,7 @@ function Problem(
         n1max_fctr::Real             = .66/multiple,
         n1max::Int                   = type == :OneStage ? Int(round(nmax)) : Int(round(max(n1min, n1max_fctr * nmax))),
         n1values::Vector{Int}        = zeros(Int, 0),
-        max_rel_increase::Real       = 3.,
+        max_rel_increase::Real       = 4.,
         min_rel_increase::Real       = 1.1,
         min_abs_increase::Int        = 5
     )
@@ -82,7 +82,15 @@ function c2vals(n1, x1, n2, problem::Problem)
 end
 
 function get_IP_model(problem::Problem)
-    # n1vals, x1vals, n2vals, c2vals, c2vals_stop, c2vals_cont = get_grid(problem)
+    prog = ProgressMeter.Progress(
+        1 + length(n1vals(problem)) + 4,
+        desc = "Building IP Problem: ",
+        dt = 0.5,
+        barglyphs = ProgressMeter.BarGlyphs("[=> ]"),
+        barlen = 30,
+        color = :gray
+    )
+    ProgressMeter.next!(prog; showvalues = [(Symbol("building model"), "...")], valuecolor = :gray)
     m = Model()
     @variable(m, # ind[x1, n1, n2, c2] == 1 iff n1 = n1, n2(x1) = n2, c2(x1) = c2
         ind[
@@ -98,7 +106,8 @@ function get_IP_model(problem::Problem)
     @variable(m, n1_selected[n1 in n1vals(problem)], Bin)
     @constraint(m, sum(n1_selected[n1] for n1 in n1vals(problem)) == 1)
     # implement all constraints conditional on n1
-    @showprogress for n1 in n1vals(problem)
+    for n1 in n1vals(problem)
+        ProgressMeter.next!(prog; showvalues = [(Symbol("building constraints for n1"), n1)], valuecolor = :gray)
         # make sure that n1_selected[n1] is 1 iff any of the other values is assigned
         @constraint(m,
             2*problem.nmax * n1_selected[n1] >= sum(
@@ -124,11 +133,11 @@ function get_IP_model(problem::Problem)
                         n2 in n2vals(n1, x1 - 1, problem), c2 in c2vals(n1, x1 - 1, n2, problem)
                     )
                 )
-                if problem.type == :GroupSequential # wrong!
+                if problem.type == :GroupSequential
                     for n2 in n2vals(n1, x1, problem)
                         @constraint(m,
                             sum( ind[n1, x1, n2, c2] for c2 in c2vals(n1, x1, n2, problem) if isfinite(c2) ) +
-                                sum( ind[n1, x1, nn2, c2] for nn2 in n2vals(n1, x1, problem), c2 in c2vals(n1, x1, nn2, problem) if c2 == -Inf )>=
+                            sum( ind[n1, x1, nn2, c2] for nn2 in n2vals(n1, x1, problem), c2 in c2vals(n1, x1, nn2, problem) if c2 == -Inf )>=
                             sum( ind[n1, x1 - 1, n2, c2] for c2 in c2vals(n1, x1 - 1, n2, problem) if isfinite(c2) )
                         )
                     end
@@ -147,9 +156,13 @@ function get_IP_model(problem::Problem)
             end
         end
     end
+    ProgressMeter.next!(prog; showvalues = [(Symbol("adding constraint"), "type one error rate")], valuecolor = :gray)
     add!(m, ind, problem.toer, problem)
+    ProgressMeter.next!(prog; showvalues = [(Symbol("adding constraint"), "power")], valuecolor = :gray)
     add!(m, ind, problem.power, problem)
+    ProgressMeter.next!(prog; showvalues = [(Symbol("adding objective"), "...")], valuecolor = :gray)
     add!(m, ind, problem.objective, problem)
+    ProgressMeter.next!(prog; showvalues = [(Symbol("finishing up"), "...done!")], valuecolor = :gray)
     return m, ind, n1_selected
 end
 

@@ -9,6 +9,13 @@ minimal_expected_power(prior::Prior, mrv::Real, threshold::Real;
     conditional_threshold::Real = .5, power_curtail = .999) =
     ExpectedPowerConstraint(threshold, conditional_threshold, condition(prior, low = mrv), power_curtail)
 
+function (cnstr::ExpectedPowerConstraint)(design::AbstractDesign)
+    power(design, cnstr.cprior) - cnstr.threshold
+end
+function (cnstr::ExpectedPowerConstraint)(design::AbstractDesign, x1::Integer)
+    power(x1, design, cnstr.cprior) - cnstr.conditional_threshold
+end
+
 function valid(n1, x1, n2, cnstr::ExpectedPowerConstraint)
     ( (power(x1, n1, cnstr.cprior) > cnstr.threshold) & (n2 > 0) ) ?
             (return false) : true

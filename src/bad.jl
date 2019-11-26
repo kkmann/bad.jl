@@ -3,7 +3,7 @@ module bad
 import Base.show, Base.isless, Base.isequal, Base.-, Base.+, Base.*, Base.string,
     Base.convert
 
-import ProgressMeter.@showprogress
+import ProgressMeter
 
 import Printf.@printf, Printf.@sprintf
 

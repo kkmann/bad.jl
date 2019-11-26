@@ -3,6 +3,11 @@ mutable struct ExpectedSampleSize <: Objective
 end
 minimise_expected_sample_size(prior) = ExpectedSampleSize(prior)
 
+function (objective::ExpectedSampleSize)(design::AbstractDesign)
+    x1 = 0:n1(design)
+    sum( n.(design, x1) .* dbinom.(x1, n1(design), objective.prior) )
+end
+
 function update!(objective::ExpectedSampleSize, prior::Prior)
     objective.prior = prior
 end
