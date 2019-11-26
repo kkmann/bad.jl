@@ -29,7 +29,9 @@ function add!(jump_model, ind, cnstr::MaximalTypeOneErrorRateConstraint, problem
     )
 end
 
-function add!(jump_model, ind, cnstr::MaximalTypeOneErrorRateConstraint, problem::Problem, xx1, nn1, old_design::AbstractDesign)
+function add!(jump_model, ind, cnstr::MaximalTypeOneErrorRateConstraint,
+    problem::Problem, xx1, nn1, old_design::AbstractDesign
+)
     @constraint(jump_model,
         sum(
             power(n2, c2, cnstr.p0) * dbinom(x1 - xx1, n1 - nn1, cnstr.p0) * ind[n1, x1, n2, c2] for

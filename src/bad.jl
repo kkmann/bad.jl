@@ -16,7 +16,7 @@ import QuadGK.quadgk, QuadGK.gauss
 using JuMP, GLPK
 GLPK.jl_set_preemptive_check(false) # faster!
 
-import DataFrames
+import DataFrames, Gadfly
 
 include("priors/Prior.jl")
 export is_proper, condition, update, predictive_pmf, mean, expected_value
@@ -33,8 +33,8 @@ export PointMass
 
 
 include("designs.jl")
-export Design, OptimalDesign, n1, n2, c2, early_futility, early_efficacy, probability,
-    reject_null, sample_space
+export Design, OptimalDesign, n1, n2, c2, early_futility, early_efficacy, as_table,
+    reject_null, sample_space, plot
 
 include("power.jl")
 export power
@@ -61,6 +61,10 @@ export maximal_type_one_error_rate
 
 include("objectives/ExpectedSampleSize.jl")
 export minimise_expected_sample_size
+
+
+include("adapt.jl")
+export adapt
 
 
 

@@ -21,43 +21,37 @@ function string(design::AbstractDesign)
     return @sprintf "%s<n1=%i;n2:[%i,%i]->[%i,%i]>" string(typeof(design)) nn1 cont_region[1] cont_region[end] minimum(n2_cont) maximum(n2_cont)
 end
 
-n1(design::AbstractDesign)          = length(design.n2) - 1
-n2(design::AbstractDesign, x1::Int) = valid(design, x1) ? design.n2[x1 + 1] : error("0 <= x1 <= n1 violated")
-n(design::AbstractDesign, x1::Int)  = n1(design) + n2(design, x1)
+n1(design::AbstractDesign)             = length(design.n2) - 1
+n2(design::AbstractDesign, x1::Int)    = valid(design, x1) ? design.n2[x1 + 1] : error("0 <= x1 <= n1 violated")
+n(design::AbstractDesign, x1::Int)     = n1(design) + n2(design, x1)
+n(design::AbstractDesign)              = n1(design) .+ design.n2
 
 early_futility(design::AbstractDesign) = any(design.c2 .== Inf) ? findlast(design.c2 .== Inf) - 1 : -1
 early_efficacy(design::AbstractDesign) = any(design.c2 .== -Inf) ? findfirst(design.c2 .== -Inf) - 1 : n1(design) + 1
-c2(design::AbstractDesign, x1::Int) = valid(design, x1) ? design.c2[x1 + 1] : error("0 <= x1 <= n1 violated")
+c2(design::AbstractDesign, x1::Int)    = valid(design, x1) ? design.c2[x1 + 1] : error("0 <= x1 <= n1 violated")
 
-function probability(x1::Int, x2::Int, design::AbstractDesign, p::T) where {T<:Real}
-    !valid(design, x1, x2) ? (return 0.0) : nothing
-    return dbinom(x1, n1(design), p)*dbinom(x2, n2(design, x1), p)
+
+
+function as_table(design::AbstractDesign)
+    DataFrames.DataFrame(
+        n1 = repeat([n1(design)], n1(design) + 1),
+        x1 = 0:n1(design),
+      phat = (0:n1(design)) ./ repeat([n1(design)], n1(design) + 1),
+        n2 = design.n2,
+        n  = n(design),
+        c2 = design.c2
+    )
 end
-probability(x1::Int, x2::Int, design::AbstractDesign, Prior::Prior) = expected_value(p -> probability(x1, x2, design, p), prior)
 
-function probability(x1::Int, design::AbstractDesign, p::T) where {T<:Real}
-    !valid(design, x1) ? (return 0.0) : nothing
-    return dbinom(x1, n1(design), p)
+function plot(design::AbstractDesign)
+    tbl = as_table(design)
+    Gadfly.plot(
+        Gadfly.layer(tbl, x = :phat, y = :n, Gadfly.Geom.hair, Gadfly.Geom.point),
+        Gadfly.layer(tbl, x = :phat, y = tbl[!, :c2] + tbl[!, :x1], Gadfly.Geom.hair, Gadfly.Geom.point, Gadfly.Theme(default_color = Gadfly.colorant"orange"))
+    )
 end
-probability(x1::Int, design::AbstractDesign, Prior::Prior) = integrate(Prior, probability.(x1, design, Prior.pivots))
 
-function probability(event::Symbol, design::AbstractDesign, p)
-    event == :efficacy ? (return power(design, p)) : nothing
-    event == :futility ? (return 1 - power(design, p)) : nothing
-    x1 = collect(0:n1(design))
-    event == :early_efficacy ? (return sum(dbinom(x1 .== Efficacy(), n1(design), p)) ) : nothing
-    event == :early_futility ? (return sum(dbinom(x1 .== Futility(), n1(design), p)) ) : nothing
-end
-probability(event::Symbol, design::AbstractDesign, Prior::Prior) = expected_value(p -> probability(event, design, p), prior)
 
-function power(x1::Int, design::AbstractDesign, p::T) where {T<:Real}
-    !valid(design, x1) ? error("invalid x1") : nothing
-    power(n2(design, x1), c2(design, x1), p)
-end
-power(x1::Int, design::AbstractDesign, cprior::Prior) = expected_value(p -> power(x1, design, p), update(prior, x1, n1(design)))
-
-power(design::AbstractDesign, p::T) where {T<:Real} = sum(probability.(0:n1(design), design, p) .* power.(0:n1(design), design, p))
-power(design::AbstractDesign, cprior::Prior) = expected_value(p -> power.(design, p), cprior)
 
 sample_space(design::AbstractDesign) =
     [ [x1, x2] for x1 in 0:n1(design), x2 in 0:maximum(design.n2) if valid(design, x1, x2) ] |>
@@ -74,13 +68,11 @@ end
 valid(design::AbstractDesign, x1::Int) = 0 <= x1 <= n1(design)
 valid(design::AbstractDesign, x1::Int, x2::Int) = valid(design, x1) & (0 <= x2 <= n2(design, x1))
 
-function power(p::T, x::Vector{Bool}, design::AbstractDesign) where {T<:Union{Real, Prior}}
-    power(p, x, n1(design), design.n2, design.c2)
-end
 
-function power(p::T, xx1::Int, nn1::Int, xx2::Int, nn2::Int, design::AbstractDesign) where {T<:Union{Real, Prior}}
-    power(p, xx1, nn1, xx2, nn2, n1(design), design.n2, design.c2)
-end
+
+
+
+
 
 
 

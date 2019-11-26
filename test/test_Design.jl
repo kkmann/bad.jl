@@ -14,6 +14,11 @@ ts  = get_optimal_design(prior, p0, α, β, :TwoStage) |> optimise
 gs  = get_optimal_design(prior, p0, α, β, :GroupSequential) |> optimise
 os  = get_optimal_design(prior, p0, α, β, :OneStage) |> optimise
 
+tbl = as_table(ts)
+
+
+
+
 # prior = Beta(mean = .35, sd = .1)
 # p0    = .2
 # α, β  = .05, .2

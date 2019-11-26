@@ -5,6 +5,18 @@ power(n::Int, c::Real, prior::Prior) =
 power(x1::Int, n1::Int, n2::Int, c2::Real, prior::Prior) =
     expected_value(p -> power(n2, c2, p), update(prior, x1, n1))
 
+
+function power(x1::Int, design::AbstractDesign, p::T) where {T<:Real}
+    !valid(design, x1) ? error("invalid x1") : nothing
+    power(n2(design, x1), c2(design, x1), p)
+end
+power(x1::Int, design::AbstractDesign, cprior::Prior) = expected_value(p -> power(x1, design, p), update(prior, x1, n1(design)))
+
+power(design::AbstractDesign, p::T) where {T<:Real} = sum(probability.(0:n1(design), design, p) .* power.(0:n1(design), design, p))
+power(design::AbstractDesign, cprior::Prior) = expected_value(p -> power.(design, p), cprior)
+
+
+
 function power(p::Real, xx1::Int, nn1::Int, n1::Int, n2::Vector{Int}, c2::Vector{T}) where {T<:Real}
     any(length.((n2, c2)) .!= n1 + 1) ? error("n2/c2 must be of length n1 + 1") : nothing
     nn1 > n1 ? error("") : nothing
