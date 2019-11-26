@@ -16,6 +16,7 @@ os  = get_optimal_design(prior, p0, α, β, :OneStage) |> optimise
 
 tbl = as_table(ts)
 
+plot(ts)
 
 
 
