@@ -1,9 +1,10 @@
 p0, α     = .2, .05
 prior, β  = PointMass(0.4), .2
-design    = DesignIPModel(prior, p0, α, β) +
-        minimal_expected_power(prior, p0, 1 - β) +
-        minimize_expected_sample_size() |>
-        optimise
+design    = Problem(
+        minimise_expected_sample_size(prior),
+        maximal_type_one_error_rate(p0, α),
+        minimal_expected_power(prior, p0 + .05, 1 - β),
+) |> optimise
 
 mle      = MaximumLikelihoodEstimator()
 ordering = EstimatorOrdering(mle)
