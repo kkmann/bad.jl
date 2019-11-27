@@ -33,7 +33,7 @@ export PointMass
 
 
 include("designs.jl")
-export Design, OptimalDesign, n1, n2, c2, early_futility, early_efficacy, as_table,
+export Design, OptimalDesign, n1, n2, n, c2, early_futility, early_efficacy, as_table,
     reject_null, sample_space, plot
 
 include("power.jl")
