@@ -15,7 +15,7 @@ function string(design::AbstractDesign)
     end
     n2_cont     = n2.(design, cont_region)
     if minimum(n2_cont) == maximum(n2_cont) # group sequential design
-        return @sprintf "%s<n1=%i;n2(%i...%i)=%i>" string(typeof(design)) nn1 cont_region[1] cont_region[end] n2_cont[1]
+        return @sprintf "%s<n1=%i;n2:[%i,%i]->%i>" string(typeof(design)) nn1 cont_region[1] cont_region[end] n2_cont[1]
     end
     # generic two stage design
     return @sprintf "%s<n1=%i;n2:[%i,%i]->[%i,%i]>" string(typeof(design)) nn1 cont_region[1] cont_region[end] minimum(n2_cont) maximum(n2_cont)
@@ -26,8 +26,8 @@ n2(design::AbstractDesign, x1::Int)    = valid(design, x1) ? design.n2[x1 + 1] :
 n(design::AbstractDesign, x1::Int)     = n1(design) + n2(design, x1)
 n(design::AbstractDesign)              = n1(design) .+ design.n2
 
-early_futility(design::AbstractDesign) = any(design.c2 .== Inf) ? findlast(design.c2 .== Inf) : -1
-early_efficacy(design::AbstractDesign) = any(design.c2 .== -Inf) ? findfirst(design.c2 .== -Inf) : n1(design) + 1
+early_futility(design::AbstractDesign) = any(design.c2 .== Inf) ? findlast(design.c2 .== Inf) - 1 : -Inf
+early_efficacy(design::AbstractDesign) = any(design.c2 .== -Inf) ? findfirst(design.c2 .== -Inf) - 1 : Inf
 c2(design::AbstractDesign, x1::Int)    = valid(design, x1) ? design.c2[x1 + 1] : error("0 <= x1 <= n1 violated")
 
 
