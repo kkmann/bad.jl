@@ -30,7 +30,7 @@ early_futility(design::AbstractDesign) = any(design.c2 .== Inf) ? findlast(desig
 early_efficacy(design::AbstractDesign) = any(design.c2 .== -Inf) ? findfirst(design.c2 .== -Inf) - 1 : Inf
 c2(design::AbstractDesign, x1::Int)    = valid(design, x1) ? design.c2[x1 + 1] : error("0 <= x1 <= n1 violated")
 
-
+expected_sample_size(design::AbstractDesign, p::Real) = sum(dbinom.(0:n1(design)) .* design.n2) + n1(design)
 
 function as_table(design::AbstractDesign)
     DataFrames.DataFrame(
