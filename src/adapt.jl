@@ -25,5 +25,5 @@ function adapt(design::OptimalDesign, xx1, nn1)
         cntr != 1 ? error() : nothing
     end
     score = objective_value(m)
-    return OptimalDesign(n2_res, c2_res, design.model, score)
+    return OptimalDesign(n2_res, c2_res, design.model, score, design.info)
 end
