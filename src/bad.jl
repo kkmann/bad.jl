@@ -5,6 +5,8 @@ import Base.show, Base.isless, Base.isequal, Base.-, Base.+, Base.*, Base.string
 
 import ProgressMeter
 
+import TickTock.tick, TickTock.tok
+
 import Printf.@printf, Printf.@sprintf
 
 import SpecialFunctions.gamma, SpecialFunctions.beta_inc

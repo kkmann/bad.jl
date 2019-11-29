@@ -173,18 +173,21 @@ mutable struct OptimalDesign <: AbstractDesign
     c2::Vector{Real}
     model::Problem
     score::Real
-    # check n2/c2
+    info::Dict{String,Any}
 end
 
 
 
 function optimise(problem::Problem; verbosity = 3, timelimit = 300)
-    # n1vals, x1vals, n2vals, c2vals, c2vals_stop, c2vals_cont = get_grid(problem)
+    tick()
     m, ind, n1_selected = get_IP_model(problem)
+    time_problem_generation = tok()
+    tick()
     optimize!(
         m,
         with_optimizer(GLPK.Optimizer, msg_lev = verbosity, tm_lim = 1000*timelimit)
     )
+    time_problem_solution = tok()
     # termination_status(model.jump_model)
     vals = value.(ind)
     # find n1
@@ -204,5 +207,10 @@ function optimise(problem::Problem; verbosity = 3, timelimit = 300)
         cntr != 1 ? error() : nothing
     end
     score = objective_value(m)
-    return OptimalDesign(n2_res, c2_res, problem, score)
+    info  = Dict(
+        "#variables" => length(ind),
+        "problem generation time" => time_problem_generation,
+        "solution time" => time_problem_solution
+    )
+    return OptimalDesign(n2_res, c2_res, problem, score, info)
 end

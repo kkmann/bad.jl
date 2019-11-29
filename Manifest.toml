@@ -206,9 +206,9 @@ version = "0.6.1"
 
 [[ForwardDiff]]
 deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "NaNMath", "Random", "SpecialFunctions", "StaticArrays"]
-git-tree-sha1 = "4407e7b76999eca2646abdb68203bd4302476168"
+git-tree-sha1 = "da46ac97b17793eba44ff366dc6cb70f1238a738"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
-version = "0.10.6"
+version = "0.10.7"
 
 [[Future]]
 deps = ["Random"]
@@ -557,6 +557,12 @@ version = "0.2.11"
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[[TickTock]]
+deps = ["Dates", "Pkg", "Test"]
+git-tree-sha1 = "9e6c0802f84e2643d3397a6f0e308883cb6faeae"
+uuid = "9ff05d80-102d-5586-aa04-3a8bd1a90d20"
+version = "1.0.0"
 
 [[URIParser]]
 deps = ["Test", "Unicode"]
