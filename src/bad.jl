@@ -64,6 +64,9 @@ export maximal_type_one_error_rate
 include("objectives/ExpectedSampleSize.jl")
 export minimise_expected_sample_size
 
+include("objectives/MiniMaxSampleSize.jl")
+export MiniMaxSampleSize
+
 
 include("adapt.jl")
 export adapt
