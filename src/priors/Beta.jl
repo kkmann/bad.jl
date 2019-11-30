@@ -50,6 +50,13 @@ function predictive_pmf(x, n, prior::Beta{T}) where {T<:Real}
     integrate(prior, dbinom.(x, n, prior.pivots))
 end
 
+function cdf(prior::Beta, p::Real)
+    p < prior.low ? (return 0.0) : nothing
+    p > prior.high ? (return 1.0) : nothing
+    F(p) = cdf(Distributions.Beta(prior.a, prior.b), p)
+    return (F(p) - F(prior.low)) / ((F(prior.high) - F(prior.low)))
+end
+
 function string(prior::Beta)
     if (prior.low != 0) | (prior.high != 1)
         @sprintf "Beta|[%.2f,%.2f](a=%.2f,b=%.2f)" prior.low prior.high prior.a prior.b

@@ -11,7 +11,7 @@ import Printf.@printf, Printf.@sprintf
 
 import SpecialFunctions.gamma, SpecialFunctions.beta_inc
 
-import Distributions
+import Distributions, Distributions.cdf
 
 import QuadGK.quadgk, QuadGK.gauss
 
@@ -52,6 +52,8 @@ include("Problem.jl")
 export Problem, OptimalDesign, optimise
 
 
+include("constraints/no-constraints.jl")
+export NoPowerConstraint, NoTypeOneErrorRateConstraint
 
 include("constraints/ExpectedPowerConstraint.jl")
 export minimal_expected_power
@@ -66,6 +68,9 @@ export minimise_expected_sample_size
 
 include("objectives/MiniMaxSampleSize.jl")
 export MiniMaxSampleSize
+
+include("objectives/ExpectedUtility.jl")
+export ExpectedUtility
 
 
 include("adapt.jl")
