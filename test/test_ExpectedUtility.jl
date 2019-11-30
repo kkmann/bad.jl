@@ -1,7 +1,7 @@
 problem = Problem(
     ExpectedUtility(
         Beta(5, 7),
-        .75, -1.5, .0025,
+        300, -150,
         .3
     ),
     NoTypeOneErrorRateConstraint(.2, .05),

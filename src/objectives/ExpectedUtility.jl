@@ -2,7 +2,6 @@ mutable struct ExpectedUtility <: Objective
     prior::Prior
     λ_tp::Real
     λ_fp::Real
-    λ_patient::Real
     mcr::Real
 end
 # maximise_expected_utility(prior, λ_tp, λ_fp, λ_patient, mcr) =
@@ -47,6 +46,6 @@ function add!(m, ind, obj::ExpectedUtility, problem::Problem)
         )
     )
     @objective(m, Max,
-        obj.λ_fp*prob_leq_mcr*ee + obj.λ_tp*prob_geq_mcr*ep - obj.λ_patient*ess
+        obj.λ_fp*prob_leq_mcr*ee + obj.λ_tp*prob_geq_mcr*ep - ess
     )
 end
