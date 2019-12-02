@@ -7,6 +7,10 @@ Base.show(io::IO, estimator::Estimator) = print(io, string(estimator))
 Base.show(io::IO, ::MIME"application/prs.juno.inline", estimator::Estimator) = print(io, string(estimator))
 
 (::Estimator)(x1::Integer, x2::Integer, design::AbstractDesign) = error("not implemented")
+function estimate(estimator::TE, x1::TI, x2::TI, design::TD) where {TE<:Estimator,TI<:Integer,TD<:AbstractDesign}
+    return estimator(x1, x2, design)
+end
+
 
 string(estimator::Estimator) = error("not implemented")
 
