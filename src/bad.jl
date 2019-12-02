@@ -27,7 +27,7 @@ include("util.jl")
 export valid
 
 include("priors/Beta.jl")
-export Beta
+export Beta, BetaMixture
 
 include("priors/PointMass.jl")
 export PointMass

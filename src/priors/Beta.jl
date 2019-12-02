@@ -64,3 +64,36 @@ function string(prior::Beta)
         @sprintf "Beta(a=%.2f,b=%.2f)" prior.a prior.b
     end
 end
+
+
+
+struct BetaMixture{T<:Real} <: Prior
+    ω::Vector{T}
+    priors::Vector{Beta{T}}
+end
+BetaMixture(ω::T, priors::Vector{Beta{T}}) where {T<:Real} = BetaMixture{T}(ω, priors)
+*(ω::T, prior::Beta{T}) where{T<:Real} = BetaMixture{T}([ω], [prior])
++(φ::BetaMixture{T}, η::BetaMixture{T}) where {T<:Real} = BetaMixture{T}(vcat(φ.ω, η.ω), vcat(φ.priors, η.priors))
+
+is_proper(mprior::BetaMixture) = sum(mprior.ω) == 1
+
+condition(mprior::BetaMixture; low::T1 = 0., high::T1 = 1.) where {T1<:Real, T2<:Real} =
+    BetaMixture(mprior.ω,  condition.(mprior.priors; low = low, high = high))
+
+update(mprior::BetaMixture{T}, x::Int, n::Int) where {T<:Real} = BetaMixture{T}(mprior.ω,  update.(mprior.priors, x, n))
+
+expected_value(f::Function, mprior::BetaMixture) = sum( mprior.ω .* expected_value.(f::Function, mprior.priors) )
+
+mean(mprior::BetaMixture) = sum( mprior.ω .* mean.(mprior.priors) )
+
+predictive_pmf(x, n, mprior::BetaMixture) = sum( mprior.ω .* predictive_pmf.(x, n, mprior.priors) )
+
+function string(mprior::BetaMixture)
+    n = length(mprior.priors)
+    res = ""
+    for i in 1:(n - 1)
+        res *= (@sprintf "%.2f*" mprior.ω[i]) * string(mprior.priors[i]) * " + "
+    end
+    res *= (@sprintf "%.2f*" mprior.ω[n]) * string(mprior.priors[n])
+    res
+end
