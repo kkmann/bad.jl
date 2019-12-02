@@ -7,19 +7,19 @@ Base.length(design::Prior) = 1
 Base.show(io::IO, prior::Prior) = print(io, string(prior))
 Base.show(io::IO, ::MIME"application/prs.juno.inline", prior::Prior) = print(io, string(prior))
 
-struct MixturePrior <: Prior
-    ω::Vector{Real}
+struct MixturePrior{T<:Real} <: Prior
+    ω::Vector{T}
     priors::Vector{Prior}
 end
-*(ω::Real, prior::Prior) = MixturePrior([ω], [prior])
-+(φ::MixturePrior, η::MixturePrior) = MixturePrior(vcat(φ.ω, η.ω), vcat(φ.priors, η.priors))
+*(ω::T, prior::Prior) where{T<:Real} = MixturePrior{T}([ω], [prior])
++(φ::MixturePrior{T}, η::MixturePrior{T}) where {T<:Real} = MixturePrior{T}(vcat(φ.ω, η.ω), vcat(φ.priors, η.priors))
 
 is_proper(mprior::MixturePrior) = sum(mprior.ω) == 1
 
 condition(mprior::MixturePrior; low::T1 = 0., high::T1 = 1.) where {T1<:Real, T2<:Real} =
     MixturePrior(mprior.ω,  condition.(mprior.priors; low = low, high = high))
 
-update(mprior::MixturePrior, x::Int, n::Int) = MixturePrior(mprior.ω,  update.(mprior.priors, x, n))
+update(mprior::MixturePrior{T}, x::Int, n::Int) where {T<:Real} = MixturePrior{T}(mprior.ω,  update.(mprior.priors, x, n))
 
 expected_value(f::Function, mprior::MixturePrior) = sum( mprior.ω .* expected_value.(f::Function, mprior.priors) )
 
