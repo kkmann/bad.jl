@@ -14,4 +14,4 @@ sqrt.(mean_squared_error.(p, mle, ts))
 
 
 space = sample_space(ts)
-probability.(space[:,1], space[:,2], ts, .3) |> sum
+pdf.(space[:,1], space[:,2], ts, PointMass(.3)) |> sum

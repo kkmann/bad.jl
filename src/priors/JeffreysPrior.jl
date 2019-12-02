@@ -36,6 +36,16 @@ function pdf(p::TR, prior::JeffreysPrior{TR,TD})::TR where
     return prior.pdf_function(p)
 end
 
+function pdf(x1::TI, x2::TI, design::TD, prior::JeffreysPrior{TR,TD})::TR where
+    {TR<:Real,TI<:Integer,TD<:AbstractDesign}
+
+    return (prior.high - prior.low)/2 * sum( prior.pdf .*
+        dbinom.(x1, n1(design), prior.pivots) .*
+        dbinom.(x2, n2(design,x1), prior.pivots) .*
+        prior.weights
+    )
+end
+
 function cdf(p::TR, prior::JeffreysPrior{TR,TD})::TR where
     {TR<:Real,TD<:AbstractDesign}
 

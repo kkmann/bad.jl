@@ -32,6 +32,11 @@ c2(design::AbstractDesign, x1::Int)    = valid(design, x1) ? design.c2[x1 + 1] :
 
 expected_sample_size(design::AbstractDesign, p::Real) = sum(dbinom.(0:n1(design), n1(design), p) .* design.n2) + n1(design)
 
+function pdf(x1::TI, x2::TI, design::TD, p::TR) where {TI<:Integer,TR<:Real,TD<:AbstractDesign}
+
+    return dbinom(x1, n1(design), p) * dbinom(x2, n2(design,x1), p)
+end
+
 function as_table(design::AbstractDesign)
     DataFrames.DataFrame(
         n1 = repeat([n1(design)], n1(design) + 1),

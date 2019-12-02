@@ -40,9 +40,13 @@ function pdf(p::T, prior::Beta{T})::T where {T<:Real}
     return pdf(Distributions.Beta(prior.a, prior.b), p) / ((F(prior.high) - F(prior.low)))
 end
 
-function pdf(x1::TI, x2::TI, prior::Beta{T})::T where {T<:Real,TI<:Integer}
+function pdf(x1::TI, x2::TI, design::TD, prior::Beta{T})::T where {T<:Real,TI<:Integer,TD<:AbstractDesign}
 
-    return (prior.high - prior.low)/2 * sum( prior.pdf .* dbinom.(x1, x2, prior.pivots) .* prior.weights )
+    return (prior.high - prior.low)/2 * sum( prior.pdf .*
+        dbinom.(x1, n1(design), prior.pivots) .*
+        dbinom.(x2, n2(design,x1), prior.pivots) .*
+        prior.weights
+    )
 end
 
 

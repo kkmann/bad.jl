@@ -3,6 +3,7 @@ function dbinom(x::Real, n::Real, p::Real)
     return (0 <= x <= n) ? gamma(n + 1)/gamma(x + 1)/gamma(n - x + 1)*(1 - p)^(n - x)*p^x : 0.0
 end
 dbinom(x::Real, n::Real, p::Prior) = expectation(p -> dbinom(x, n, p), p)
+
 function pbinom(x::Real, n::Real, p::Real)
     n < 0  ? (return NaN) : nothing
     x < 0  ? (return 0.0) : nothing

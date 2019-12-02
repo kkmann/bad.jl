@@ -9,7 +9,7 @@ Base.show(io::IO, ::MIME"application/prs.juno.inline", prior::Prior) = print(io,
 
 pdf(p::Real, prior::Prior) = error("not implemented")
 
-pdf(x1::Integer, x2::Integer, prior::Prior) = error("not implemented")
+# pdf(x1::Integer, x2::Integer, design::AbstractDesign, prior::Prior) = error("not implemented")
 
 cdf(p::Real, prior::Prior) = error("not implemented")
 

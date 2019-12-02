@@ -26,16 +26,6 @@ export is_proper, condition, update, pdf, cdf, mean, expectation
 include("util.jl")
 export valid
 
-include("priors/GenericDistribution.jl")
-export GenericDistribution
-
-include("priors/Beta.jl")
-export Beta, BetaMixture
-
-include("priors/PointMass.jl")
-export PointMass
-
-
 
 include("designs.jl")
 export Design, OptimalDesign, n1, n2, n, c2, early_futility, early_efficacy, as_table,
@@ -46,6 +36,15 @@ export power
 
 include("priors/JeffreysPrior.jl")
 export JeffreysPrior
+
+include("priors/GenericDistribution.jl")
+export GenericDistribution
+
+include("priors/Beta.jl")
+export Beta, BetaMixture
+
+include("priors/PointMass.jl")
+export PointMass
 
 
 include("constraints/constraints.jl")
@@ -89,8 +88,8 @@ export bias, mean_squared_error
 include("estimators/MaximumLikelihoodEstimator.jl")
 export MaximumLikelihoodEstimator
 
-include("estimators/PosteriorMeanEstimator.jl")
-export PosteriorMeanEstimator
+include("estimators/PosteriorMean.jl")
+export PosteriorMean
 
 
 

@@ -6,7 +6,10 @@ PointMass(atom::T) where{T<:Real} = PointMass{T}(atom)
 
 pdf(prior::PointMass{T}, p::T) where{T<:Real} = (p == prior.atom) ? Inf : 0
 
-pdf(x1::TI, x2::TI, prior::PointMass{T}) where {T<:Real,TI<:Integer} = dbinom.(x1, x2, prior.atom)
+function pdf(x1::TI, x2::TI, design::TD, prior::PointMass{T}) where {T<:Real,TD<:AbstractDesign,TI<:Integer}
+
+    return dbinom.(x1, x2, prior.atom)
+end
 
 cdf(prior::PointMass{T}, p::T) where{T<:Real} = (p >= prior.atom) ? 1 : 0
 

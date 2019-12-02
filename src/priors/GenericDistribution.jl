@@ -27,19 +27,22 @@ function GenericDistribution(f::Function; low::Real = 0, high::Real = 1)::Generi
     )
 end
 
-function pdf(p::TR, prior::GenericDistribution{TR})::TR where
-    {TR<:Real}
+function pdf(p::TR, prior::GenericDistribution{TR})::TR where {TR<:Real}
 
     return prior.pdf_function(p)
 end
 
-function pdf(x1::TI, x2::TI, prior::GenericDistribution{T})::T where {T<:Real,TI<:Integer}
+function pdf(x1::TI, x2::TI, design::TD, prior::GenericDistribution{T})::T where
+    {T<:Real,TI<:Integer,TD<:AbstractDesign}
 
-    return (prior.high - prior.low)/2 * sum( prior.pdf .* dbinom.(x1, x2, prior.pivots) .* prior.weights )
+    return (prior.high - prior.low)/2 * sum( prior.pdf .*
+        dbinom.(x1, n1(design), prior.pivots) .*
+        dbinom.(x2, n2(design,x1), prior.pivots) .*
+        prior.weights
+    )
 end
 
-function cdf(p::TR, prior::GenericDistribution{TR})::TR where
-    {TR<:Real}
+function cdf(p::TR, prior::GenericDistribution{TR})::TR where {TR<:Real}
 
     return quadgk(prior.pdf_function, 0, p)[1]
 end
@@ -53,7 +56,7 @@ end
 function mean(prior::GenericDistribution{TR})::TR where
     {TR<:Real}
 
-    return expected(p -> p, prior)
+    return expectation(p -> p, prior)
 end
 
 function condition(prior::GenericDistribution{TR}; low::TR = prior.low, high::TR = prior.high)::GenericDistribution{TR} where
