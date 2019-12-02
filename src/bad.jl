@@ -11,7 +11,7 @@ import Printf.@printf, Printf.@sprintf
 
 import SpecialFunctions.gamma, SpecialFunctions.beta_inc
 
-import Distributions, Distributions.cdf
+import Distributions, Distributions.cdf, Distributions.pdf
 
 import QuadGK.quadgk, QuadGK.gauss
 
@@ -21,10 +21,13 @@ GLPK.jl_set_preemptive_check(false) # faster!
 import DataFrames, Gadfly
 
 include("priors/Prior.jl")
-export is_proper, condition, update, predictive_pmf, mean, expected_value
+export is_proper, condition, update, pdf, cdf, mean, expectation
 
 include("util.jl")
 export valid
+
+include("priors/GenericDistribution.jl")
+export GenericDistribution
 
 include("priors/Beta.jl")
 export Beta, BetaMixture
@@ -41,6 +44,8 @@ export Design, OptimalDesign, n1, n2, n, c2, early_futility, early_efficacy, as_
 include("power.jl")
 export power
 
+include("priors/JeffreysPrior.jl")
+export JeffreysPrior
 
 
 include("constraints/constraints.jl")

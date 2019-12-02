@@ -4,18 +4,20 @@ struct PointMass{T<:Real} <: Prior
 end
 PointMass(atom::T) where{T<:Real} = PointMass{T}(atom)
 
+pdf(prior::PointMass{T}, p::T) where{T<:Real} = (p == prior.atom) ? Inf : 0
+
+pdf(x1::TI, x2::TI, prior::PointMass{T}) where {T<:Real,TI<:Integer} = dbinom.(x1, x2, prior.atom)
+
+cdf(prior::PointMass{T}, p::T) where{T<:Real} = (p >= prior.atom) ? 1 : 0
+
 function condition(prior::PointMass{T}; low::T = prior.atom, high::T = prior.atom) where {T<:Real}
     (low <= prior.atom <= high) ? (return prior) : error("conditioning only well-defined when probability atom is contained in intervsl")
 end
 
-update(prior::PointMass{T}, x::Int, n::Int) where {T<:Real} = !(0 <= x <= n) ? error("invalid x / n") : (return prior)
+update(prior::PointMass{T}, x::TI, n::TI) where {T<:Real,TI<:Integer} = !(0 <= x <= n) ? error("invalid x / n") : (return prior)
 
-expected_value(f::Function, prior::PointMass) = f(prior.atom)
+expectation(f::Function, prior::PointMass{T}) where {T<:Real} = f(prior.atom)
 
-mean(prior::PointMass) = prior.atom
-
-predictive_pmf(x, n, prior::PointMass{T}) where {T<:Real} = dbinom.(x, n, prior.atom)
+mean(prior::PointMass{T}) where {T<:Real} = prior.atom
 
 string(prior::PointMass) = @sprintf "PointMass(atom=%.2f)" prior.atom
-
-cdf(prior::PointMass, p::Real) = (p >= prior.atom) ? 1 : 0

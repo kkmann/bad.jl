@@ -3,9 +3,9 @@ prune(p) = min(1, max(0, p))
 power(n::Int, c::Real, p::T) where {T<:Real} =
     1 - pbinom(c, n, p)
 power(n::Int, c::Real, prior::Prior) =
-    expected_value(p -> power(n, c, p), prior) |> prune
+    expectation(p -> power(n, c, p), prior) |> prune
 power(x1::Int, n1::Int, n2::Int, c2::Real, prior::Prior) =
-    expected_value(p -> power(n2, c2, p), update(prior, x1, n1)) |> prune
+    expectation(p -> power(n2, c2, p), update(prior, x1, n1)) |> prune
 
 
 function power(x1::Int, design::AbstractDesign, p::T) where {T<:Real}
@@ -13,12 +13,12 @@ function power(x1::Int, design::AbstractDesign, p::T) where {T<:Real}
     power(n2(design, x1), c2(design, x1), p) |> prune
 end
 power(x1::Int, design::AbstractDesign, cprior::Prior) =
-    expected_value(p -> power(x1, design, p), update(cprior, x1, n1(design))) |> prune
+    expectation(p -> power(x1, design, p), update(cprior, x1, n1(design))) |> prune
 
 power(design::AbstractDesign, p::T) where {T<:Real} =
     sum(dbinom.(0:n1(design), n1(design), p) .* power.(0:n1(design), design, p)) |> prune
 power(design::AbstractDesign, cprior::Prior) =
-    expected_value(p -> power(design, p), cprior) |> prune
+    expectation(p -> power(design, p), cprior) |> prune
 
 
 

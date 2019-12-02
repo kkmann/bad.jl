@@ -69,9 +69,13 @@ valid(design::AbstractDesign, x1::Int) = 0 <= x1 <= n1(design)
 valid(design::AbstractDesign, x1::Int, x2::Int) = valid(design, x1) & (0 <= x2 <= n2(design, x1))
 
 
-
-
-
+function fisher_information(p::T, design::TD)::T where {T<:Real,TD<:AbstractDesign}
+    # 0 < p < 1 ? nothing : error("p must be in (0, 1)")
+    (p ≈ 0) | (p ≈ 1) ? (return Inf) : nothing
+    x1_x2     = sample_space(design)
+    log_prob  = log.(dbinom.(x1_x2[:, 1], n1(design), p)) .+ log.(dbinom.(x1_x2[:, 2], n2.(design, x1_x2[:, 1]), p))
+    return sum(exp.(log_prob .+ log.(fisher_information_integrand.(p, x1_x2[:, 1] + x1_x2[:, 2], n.(design, x1_x2[:, 1])))))
+end
 
 
 

@@ -23,6 +23,7 @@ function Beta(a::Real, b::Real; low::Real = 0, high::Real = 1)
         convert(Float64, high)
     )
 end
+
 # convenience function to fit a and b
 function Beta(;mean::Real = .5, sd::Real = sqrt(1/12))
     sd >= .5 ? error("sd must be strictly smaller than .5") : nothing
@@ -32,29 +33,45 @@ function Beta(;mean::Real = .5, sd::Real = sqrt(1/12))
     Beta(a, b; low = 0, high = 1)
 end
 
-condition(prior::Beta{T}; low::T = prior.low, high::T = prior.high) where {T<:Real} =
-    Beta(prior.a, prior.b, low = max(low, prior.low), high = min(high, prior.high))
-
-function update(prior::Beta{T}, x::Int, n::Int) where {T<:Real}
-    !(0 <= x <= n) ? error("invalid x / n") : nothing
-    Beta(prior.a + x, prior.b + n - x, low = prior.low, high = prior.high)
+function pdf(p::T, prior::Beta{T})::T where {T<:Real}
+    p < prior.low ? (return 0.0) : nothing
+    p > prior.high ? (return 1.0) : nothing
+    F(p) = cdf(Distributions.Beta(prior.a, prior.b), p)
+    return pdf(Distributions.Beta(prior.a, prior.b), p) / ((F(prior.high) - F(prior.low)))
 end
 
-integrate(prior::Beta, values_on_pivots) = (prior.high - prior.low) / 2 * sum( prior.pdf .* values_on_pivots .* prior.weights )
+function pdf(x1::TI, x2::TI, prior::Beta{T})::T where {T<:Real,TI<:Integer}
 
-expected_value(f::Function, prior::Beta) = integrate(prior, f.(prior.pivots))
-
-mean(prior::Beta) = integrate(prior, prior.pivots)
-
-function predictive_pmf(x, n, prior::Beta{T}) where {T<:Real}
-    integrate(prior, dbinom.(x, n, prior.pivots))
+    return (prior.high - prior.low)/2 * sum( prior.pdf .* dbinom.(x1, x2, prior.pivots) .* prior.weights )
 end
 
-function cdf(prior::Beta, p::Real)
+
+function cdf(p::T, prior::Beta{T})::T where {T<:Real}
     p < prior.low ? (return 0.0) : nothing
     p > prior.high ? (return 1.0) : nothing
     F(p) = cdf(Distributions.Beta(prior.a, prior.b), p)
     return (F(p) - F(prior.low)) / ((F(prior.high) - F(prior.low)))
+end
+
+function expectation(f::Function, prior::Beta{T})::T where {T<:Real}
+
+    return (prior.high - prior.low)/2 * sum( prior.pdf .* f.(prior.pivots) .* prior.weights )
+end
+
+function mean(prior::Beta{T})::T where {T<:Real}
+
+    return expectation(p -> p, prior)
+end
+
+function condition(prior::Beta{T}; low::T = prior.low, high::T = prior.high)::Beta{T} where {T<:Real}
+
+    return Beta(prior.a, prior.b, low = max(low, prior.low), high = min(high, prior.high))
+end
+
+function update(prior::Beta{T}, x::TI, n::TI)::Beta{T} where {T<:Real,TI<:Integer}
+
+    !(0 <= x <= n) ? error("invalid x / n") : nothing
+    return Beta(prior.a + x, prior.b + n - x; low = prior.low, high = prior.high)
 end
 
 function string(prior::Beta)
@@ -71,24 +88,42 @@ struct BetaMixture{T<:Real} <: Prior
     ω::Vector{T}
     priors::Vector{Beta{T}}
 end
+
 BetaMixture(ω::T, priors::Vector{Beta{T}}) where {T<:Real} = BetaMixture{T}(ω, priors)
+
 *(ω::T, prior::Beta{T}) where{T<:Real} = BetaMixture{T}([ω], [prior])
 +(φ::BetaMixture{T}, η::BetaMixture{T}) where {T<:Real} = BetaMixture{T}(vcat(φ.ω, η.ω), vcat(φ.priors, η.priors))
-
 is_proper(mprior::BetaMixture) = sum(mprior.ω) == 1
+
+function pdf(p::T, mprior::BetaMixture{T})::T where {T<:Real}
+
+    return sum( mprior.ω .* pdf.(p, mprior.priors) )
+end
+
+function pdf(x1::TI, x2::TI, mprior::BetaMixture{T}) where {T<:Real,TI<:Integer}
+
+    return sum( mprior.ω .* pdf.(x1, x2, mprior.priors) )
+end
+
+function cdf(p::T, mprior::BetaMixture{T})::T where {T<:Real}
+
+    return sum( mprior.ω .* cdf.(p, mprior.priors) )
+end
+
+function expectation(f::Function, mprior::BetaMixture{T})::T where {T<:Real}
+
+    return sum( mprior.ω .* expectation.(f::Function, mprior.priors) )
+end
+
+function mean(mprior::BetaMixture{T})::T where {T<:Real}
+
+    sum( mprior.ω .* mean.(mprior.priors) )
+end
 
 condition(mprior::BetaMixture; low::T1 = 0., high::T1 = 1.) where {T1<:Real, T2<:Real} =
     BetaMixture(mprior.ω,  condition.(mprior.priors; low = low, high = high))
 
-update(mprior::BetaMixture{T}, x::Int, n::Int) where {T<:Real} = BetaMixture{T}(mprior.ω,  update.(mprior.priors, x, n))
-
-expected_value(f::Function, mprior::BetaMixture) = sum( mprior.ω .* expected_value.(f::Function, mprior.priors) )
-
-mean(mprior::BetaMixture) = sum( mprior.ω .* mean.(mprior.priors) )
-
-predictive_pmf(x, n, mprior::BetaMixture) = sum( mprior.ω .* predictive_pmf.(x, n, mprior.priors) )
-
-cdf(mprior::BetaMixture{T}, p::T) where {T<:Real} = sum( mprior.ω .* cdf.(mprior.priors, p) )
+update(mprior::BetaMixture{T}, x::TI, n::TI) where {T<:Real, TI<:Integer} = BetaMixture{T}(mprior.ω,  update.(mprior.priors, x, n))
 
 function string(mprior::BetaMixture)
     n = length(mprior.priors)

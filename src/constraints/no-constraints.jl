@@ -1,7 +1,3 @@
-add!(jump_model, ind, cnstr::Union{PowerConstraint,TypeOneErrorRateConstraint}, problem::Problem) = nothing
-add!(jump_model, ind, cnstr::Union{PowerConstraint,TypeOneErrorRateConstraint}, problem::Problem, xx1, nn1, old_design::AbstractDesign) =
-    nothing
-
 struct NoPowerConstraint <: PowerConstraint
     p1::Real
     β::Real

@@ -4,13 +4,6 @@ mutable struct ExpectedUtility <: Objective
     λ_fp::Real
     mcr::Real
 end
-# maximise_expected_utility(prior, λ_tp, λ_fp, λ_patient, mcr) =
-#     ExpectedUtility(prior, λ_tp, λ_fp, λ_patient,m)
-
-# function (objective::ExpectedUtility)(design::AbstractDesign)
-#     x1 = 0:n1(design)
-#     sum( n.(design, x1) .* dbinom.(x1, n1(design), objective.prior) )
-# end
 
 function update!(objective::ExpectedUtility, prior::Prior)
     objective.prior = prior
@@ -18,7 +11,7 @@ end
 
 function add!(m, ind, obj::ExpectedUtility, problem::Problem)
     prior_leq_mcr = condition(obj.prior, high = obj.mcr)
-    prob_leq_mcr  = cdf(obj.prior, obj.mcr)
+    prob_leq_mcr  = cdf(obj.mcr, obj.prior)
     prior_geq_mcr = condition(obj.prior, low = obj.mcr)
     prob_geq_mcr  = 1 - prob_leq_mcr
     ee = @expression(m, sum(

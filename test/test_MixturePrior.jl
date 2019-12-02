@@ -3,17 +3,19 @@ prior2  = Beta(1, 1)
 
 mprior1 = .2prior1 + .3prior2
 @test !is_proper(mprior1)
+p = .01:.01:.99
+@test all( .2*pdf.(p, prior1) + .3*pdf.(p, prior2) .== pdf.(p, mprior1) )
 
 mprior2    = .9prior1 + .1prior2
 @test mean(prior1) < mean(mprior2) < mean(prior2)
-prior1_sd  = expected_value(p -> (p - mean(prior1))^2, prior1) |> sqrt
-mprior2_sd = expected_value(p -> (p - mean(mprior2))^2, mprior2) |> sqrt
+prior1_sd  = expectation(p -> (p - mean(prior1))^2, prior1) |> sqrt
+mprior2_sd = expectation(p -> (p - mean(mprior2))^2, mprior2) |> sqrt
 @test prior1_sd < mprior2_sd
 
 mprior3 = .5prior1 + .5prior2
 @test mean(mprior2) < mean(mprior3) < mean(prior2)
-prior2_sd  = expected_value(p -> (p - mean(prior2))^2, prior2) |> sqrt
-mprior3_sd = expected_value(p -> (p - mean(mprior3))^2, mprior3) |> sqrt
+prior2_sd  = expectation(p -> (p - mean(prior2))^2, prior2) |> sqrt
+mprior3_sd = expectation(p -> (p - mean(mprior3))^2, mprior3) |> sqrt
 @test prior2_sd > mprior3_sd
 
 mpost = update(mprior2, 1, 1)
@@ -23,5 +25,5 @@ mpost = update(mprior2, 1, 1)
 
 mpost2 = update(mprior2, 2, 8)
 @test mean(mpost2) < mean(mprior2)
-mpost2_sd = expected_value(p -> (p - mean(mpost2))^2, mpost2) |> sqrt
+mpost2_sd = expectation(p -> (p - mean(mpost2))^2, mpost2) |> sqrt
 @test mpost2_sd < mprior2_sd
