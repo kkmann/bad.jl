@@ -88,7 +88,7 @@ mean(mprior::BetaMixture) = sum( mprior.ω .* mean.(mprior.priors) )
 
 predictive_pmf(x, n, mprior::BetaMixture) = sum( mprior.ω .* predictive_pmf.(x, n, mprior.priors) )
 
-cdf(mprior::BetaMixture{T}, p::T) where {T<:Real} sum( mprior.ω .* cdf(mprior.priors, p) )
+cdf(mprior::BetaMixture{T}, p::T) where {T<:Real} = sum( mprior.ω .* cdf(mprior.priors, p) )
 
 function string(mprior::BetaMixture)
     n = length(mprior.priors)
