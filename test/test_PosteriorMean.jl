@@ -1,6 +1,6 @@
 p0, α     = .2, .05
 α, β      = .05, .2
-prior     = condition(.2*Beta(1, 1) + .8*Beta(5, 7), high = .6)
+prior     = ( .2*Beta(1, 1) + .8*Beta(5, 7) ) <= .6
 design    = Problem(
         minimise_expected_sample_size(prior),
         maximal_type_one_error_rate(p0, α),

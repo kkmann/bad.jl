@@ -83,7 +83,7 @@ export adapt
 
 
 include("estimators/Estimator.jl")
-export estimate, bias, mean_squared_error
+export estimate, bias, mean_squared_error, mean_absolute_error
 
 include("estimators/MaximumLikelihoodEstimator.jl")
 export MaximumLikelihoodEstimator

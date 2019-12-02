@@ -25,3 +25,9 @@ function mean_squared_error(p::Real, estimator::Estimator, design::AbstractDesig
     space = sample_space(design)
     return (estimator.(space[:,1], space[:,2], design) .- p).^2 .* pdf.(space[:,1], space[:,2], design, p) |> sum
 end
+
+function mean_absolute_error(p::Real, estimator::Estimator, design::AbstractDesign)
+    0 <= p <= 1 ? nothing : error("p must be between 0 and 1")
+    space = sample_space(design)
+    return abs.(estimator.(space[:,1], space[:,2], design) .- p) .* pdf.(space[:,1], space[:,2], design, p) |> sum
+end
