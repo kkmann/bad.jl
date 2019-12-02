@@ -4,8 +4,7 @@ os:
     - linux
 julia:
     - 1.3
-    - nightly
-
+    
 notifications:
     email: false
 sudo: false

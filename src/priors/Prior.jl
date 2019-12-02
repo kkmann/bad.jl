@@ -18,6 +18,14 @@ expectation(f::Function, prior::Prior) = error("not implemented")
 mean(prior::Prior) = error("not implemented")
 
 condition(prior::Prior; low::Real = prior.low, high::Real = prior.high) = error("not implemented")
+function |(prior::Prior, interval::Vector{T}) where {T<:Real}
+
+    length(interval) == 2 ? condition(prior; low = interval[1], high = interval[2]) : error("interval must be vector of length 2")
+end
+<=(low::T, prior::Prior) where {T<:Real} = condition(prior; low = low)
+<=(prior::Prior, high::T) where {T<:Real} = condition(prior; high = high)
+>=(prior::Prior, low::T) where {T<:Real} = condition(prior; low = low)
+>=(high::T, prior::Prior) where {T<:Real} = condition(prior; high = high)
 
 update(prior::Prior, x::Integer, n::Integer) = error("not implemented")
 

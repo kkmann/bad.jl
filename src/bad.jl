@@ -1,7 +1,7 @@
 module bad
 
 import Base.show, Base.isless, Base.isequal, Base.-, Base.+, Base.*, Base.string,
-    Base.convert
+    Base.convert, Base.<=, Base.>=, Base.|
 
 import ProgressMeter
 
