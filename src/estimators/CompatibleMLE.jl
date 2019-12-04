@@ -36,7 +36,6 @@ function CompatibleMLE(design::TD; ϵ = 1e-8, b = 1., max_iter = 10^5) where {TD
         ( likelihood(x[i], i) - likelihood(mles[i], i) )^2
         for i in 1:length(x)
     ], 1.)
-    println(f(mles...))
     # set up JuMP model
     m = Model(with_optimizer(Ipopt.Optimizer, max_iter = max_iter))
     # define all variables upfront, start with estimates
