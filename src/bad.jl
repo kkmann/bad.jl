@@ -99,13 +99,12 @@ export CompatibleMLE
 
 
 
-
 include("orderings/Ordering.jl")
 export smaller_or_equal, strictly_smaller, larger_or_equal, strictly_larger,
-    p_value, compatible
+    p_value, compatible, EstimatorOrdering
 
-include("orderings/EstimatorOrdering.jl")
-export EstimatorOrdering
+include("orderings/PValue.jl")
+export PValue
 
 
 

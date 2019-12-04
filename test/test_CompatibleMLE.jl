@@ -18,7 +18,9 @@ mle  = MaximumLikelihoodEstimator()
 cmle = CompatibleMLE(design)
 @test compatible(cmle, design, p0, α)[1]
 
-
+XX    = sample_space(design)
+resid = cmle.(XX[:,1], XX[:,2], design) .- mle.(XX[:,1], XX[:,2], design)
+@test .001 < maximum(resid)
 
 p0     = .2
 α, β   = .05, .2
@@ -35,9 +37,21 @@ mle  = MaximumLikelihoodEstimator()
 cmle = CompatibleMLE(design)
 @test compatible(cmle, design, p0, α)[1]
 
-XX = sample_space(design)
+XX    = sample_space(design)
+resid = cmle.(XX[:,1], XX[:,2], design) .- mle.(XX[:,1], XX[:,2], design)
+@test maximum(resid) < 1e-4
 
-@test abs.(
-        cmle.(XX[:,1], XX[:,2], design) .-
-        mle.(XX[:,1], XX[:,2], design)
-) |> maximum < 1e-4
+p = PValue(EstimatorOrdering(cmle), design, p0)
+
+XX_ordered = p.ordered_sample_space
+@test all( bad.more_extreme.(
+                XX_ordered[2:end,1], XX_ordered[2:end,2],
+                XX_ordered[1:(end - 1),1], XX_ordered[1:(end - 1),2],
+                cmle,
+                design
+        ) )
+
+@test 1e-9 > maximum(abs.(p.(XX[:,1], XX[:,2]) - p_value.(XX[:,1], XX[:,2], p0, cmle, design) ))
+
+@time p.(XX[:,1], XX[:,2])
+@time p_value.(XX[:,1], XX[:,2], p0, EstimatorOrdering(cmle), design)

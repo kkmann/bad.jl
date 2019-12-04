@@ -35,7 +35,7 @@ function CompatibleMLE(design::TD; ϵ = 1e-4, b = 1., max_iter = 10^5) where {TD
     f(x...) = smoothmax([
         ( likelihood(x[i], i) - likelihood(mles[i], i) )^2
         for i in 1:length(x)
-    ], 1.)
+    ], b)
     # set up JuMP model
     m = Model(
         with_optimizer(Ipopt.Optimizer,
@@ -70,9 +70,9 @@ function CompatibleMLE(design::TD; ϵ = 1e-4, b = 1., max_iter = 10^5) where {TD
         end
     end
     # define objective
-    # register(m, :f, nn, f, autodiff = true)
+    register(m, :f, nn, f, autodiff = true)
     # @NLobjective(m, Min, f(phat...))
-    @objective(m, Min, sum((phat .- mles).^2))
+    @objective(m, Min, sum( (phat .- mles).^2 ) )
     optimize!(m)
     estimates = value.(phat)
 
