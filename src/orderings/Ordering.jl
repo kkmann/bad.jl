@@ -17,7 +17,7 @@ function p_value(x1::TI, x2::TI, p0::TR, ordering::TO, design::TD; orientation::
     if orientation == :inferiority
         inds = smaller_or_equal.(XX[:,1], XX[:,2], x1, x2, ordering, design)
     end
-    return sum(pdf.(XX[:,1], XX[:,2], design, p0)[inds])
+    return min(1, max(0, sum(pdf.(XX[:,1], XX[:,2], design, p0)[inds]) ) )
 end
 
 
