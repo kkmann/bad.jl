@@ -15,7 +15,7 @@ function (estimator::CompatibleMLE)(x1::TI, x2::TI, design::TD) where {TI<:Integ
     error("(x1,x2) not found in sample space, valid observation?")
 end
 
-function CompatibleMLE(design::TD; ϵ = 1e-8, b = 1., max_iter = 10^5) where {TD<:AbstractDesign}
+function CompatibleMLE(design::TD; ϵ = 1e-4, b = 1., max_iter = 10^5) where {TD<:AbstractDesign}
 
     XX = sample_space(design)
     # precompute test decisions and get indices for rejection/non-rejection
@@ -37,7 +37,12 @@ function CompatibleMLE(design::TD; ϵ = 1e-8, b = 1., max_iter = 10^5) where {TD
         for i in 1:length(x)
     ], 1.)
     # set up JuMP model
-    m = Model(with_optimizer(Ipopt.Optimizer, max_iter = max_iter))
+    m = Model(
+        with_optimizer(Ipopt.Optimizer,
+            max_iter        = max_iter,
+            constr_viol_tol = ϵ/10
+        )
+    )
     # define all variables upfront, start with estimates
     @variable(m, 0 <= phat[i = 1:nn] <= 1, start = mles[i])
     # auxiliary variables for compatibility constraint
@@ -54,17 +59,20 @@ function CompatibleMLE(design::TD; ϵ = 1e-8, b = 1., max_iter = 10^5) where {TD
         # if both are early stopping, and one has more responses we want that
         # it has a larger estimate
         if (n2(design, x1) == 0) & (n2(design, x1_) == 0) & (x1 > x1_)
+                mles[i] <= mles[j] ? println([x1, x2]) : nothing
                 @constraint(m, phat[i] >= phat[j] + ϵ)
         end
         # we have same x1 (=> same overall sample size),
         # estimates should be orderd by x2
         if (x1 == x1_) & (x2 > x2_)
+                mles[i] <= mles[j] ? println([x1, x2]) : nothing
                 @constraint(m, phat[i] >= phat[j] + ϵ)
         end
     end
     # define objective
-    register(m, :f, nn, f, autodiff = true)
-    @NLobjective(m, Min, f(phat...))
+    # register(m, :f, nn, f, autodiff = true)
+    # @NLobjective(m, Min, f(phat...))
+    @objective(m, Min, sum((phat .- mles).^2))
     optimize!(m)
     estimates = value.(phat)
 
