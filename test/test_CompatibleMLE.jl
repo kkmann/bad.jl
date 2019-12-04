@@ -53,9 +53,6 @@ for p0 = 0.1:.1:.7
         test_design(design_h1(p0, p1), p0)
 end
 
-design  = design_h0(.4, .6)
-cmle    = CompatibleMLE(design, λ = 1)
-
 # p = PValue(EstimatorOrdering(cmle), design, p0)
 
 # XX_ordered = p.ordered_sample_space
