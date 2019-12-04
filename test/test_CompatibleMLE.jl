@@ -14,4 +14,4 @@ mle  = MaximumLikelihoodEstimator()
 @test !compatible(mle, design, p0, α)[1]
 
 cmle = CompatibleMLE(design)
-@test compatible(cmle, design, p0, α)
+@test compatible(cmle, design, p0, α)[1]
