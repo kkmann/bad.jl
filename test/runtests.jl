@@ -9,3 +9,4 @@ include("test_adapt.jl")
 
 include("test_MaximumLikelihoodEstimator.jl")
 include("test_PosteriorMean.jl")
+include("test_RaoBlackwellEstimator.jl")

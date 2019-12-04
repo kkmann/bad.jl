@@ -15,7 +15,7 @@ import Distributions, Distributions.cdf, Distributions.pdf
 
 import QuadGK.quadgk, QuadGK.gauss
 
-using JuMP, GLPK
+using JuMP, GLPK, Ipopt
 GLPK.jl_set_preemptive_check(false) # faster!
 
 import DataFrames, Gadfly
@@ -91,10 +91,18 @@ export MaximumLikelihoodEstimator
 include("estimators/PosteriorMean.jl")
 export PosteriorMean
 
+include("estimators/RaoBlackwellEstimator.jl")
+export RaoBlackwellEstimator
+
+include("estimators/CompatibleMLE.jl")
+export CompatibleMLE
+
+
 
 
 include("orderings/Ordering.jl")
-export smaller_or_equal, strictly_smaller, larger_or_equal, strictly_larger, p_value
+export smaller_or_equal, strictly_smaller, larger_or_equal, strictly_larger,
+    p_value, compatible
 
 include("orderings/EstimatorOrdering.jl")
 export EstimatorOrdering
