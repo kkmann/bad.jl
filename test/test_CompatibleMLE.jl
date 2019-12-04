@@ -1,5 +1,3 @@
-using JuMP, Ipopt
-
 α, β     = .05, .1
 p0       = .6
 shan_n1  = 19
@@ -13,7 +11,7 @@ shan_c   = vcat(
 design = Design(shan_n2, shan_c .- (0:shan_n1))
 
 mle  = MaximumLikelihoodEstimator()
-compatible(mle, design, p0, α)
+@test !compatible(mle, design, p0, α)[1]
 
 cmle = CompatibleMLE(design)
-compatible(cmle, design, p0, α)
+@test compatible(cmle, design, p0, α)
