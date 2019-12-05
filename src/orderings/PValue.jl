@@ -48,3 +48,5 @@ function (pval::PValue{TI,TR,TO,TD})(x1::TI, x2::TI) where {TI<:Integer,TR<:Real
     end
     error("(x1,x2) not found in sample space, valid observation?")
 end
+
+evaluate(pval::PValue{TI,TR,TO,TD}, x1::TI, x2::TI) where {TI<:Integer,TR<:Real,TO<:Ordering,TD<:AbstractDesign} = pval(x1, x2)

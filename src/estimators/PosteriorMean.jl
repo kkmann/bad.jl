@@ -9,7 +9,7 @@ function (estimator::PosteriorMean)(x1::TI, x2::TI, design::TD) where {TI<:Integ
 end
 
 
-
+# TODO: implement this as cached() / CachedEstimator for all!
 struct PosteriorMeanPrecalculated{TI<:Integer,TR<:Real,TD<:AbstractDesign,TP<:Prior} <: Estimator
     design::TD
     prior::TP
