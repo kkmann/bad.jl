@@ -61,7 +61,7 @@ include("estimators/MaximumLikelihoodEstimator.jl")
 export MaximumLikelihoodEstimator
 
 include("estimators/PosteriorMean.jl")
-export PosteriorMean
+export PosteriorMean, PosteriorMeanPrecalculated
 
 include("estimators/RaoBlackwellEstimator.jl")
 export RaoBlackwellEstimator
