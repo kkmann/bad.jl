@@ -212,5 +212,9 @@ function optimise(problem::Problem; verbosity = 3, timelimit = 300)
         "problem generation time" => time_problem_generation,
         "solution time" => time_problem_solution
     )
-    return OptimalDesign(n2_res, c2_res, problem, score, info)
+    design = OptimalDesign(n2_res, c2_res, problem, score, info)
+    if !compatible(MaximumLikelihoodEstimator(), design, p0(problem.toer), α(problem.toer))[1]
+        error("design is incompatible with MLE")
+    end
+    return design
 end

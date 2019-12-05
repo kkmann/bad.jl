@@ -52,34 +52,6 @@ export update!
 
 include("objectives/Objective.jl")
 
-include("Problem.jl")
-export Problem, OptimalDesign, optimise
-
-
-include("constraints/no-constraints.jl")
-export NoPowerConstraint, NoTypeOneErrorRateConstraint
-
-include("constraints/ExpectedPowerConstraint.jl")
-export minimal_expected_power
-
-include("constraints/MaximalTypeOneErrorRateConstraint.jl")
-export maximal_type_one_error_rate
-
-
-
-include("objectives/ExpectedSampleSize.jl")
-export minimise_expected_sample_size
-
-include("objectives/MiniMaxSampleSize.jl")
-export MiniMaxSampleSize
-
-include("objectives/ExpectedUtility.jl")
-export ExpectedUtility
-
-
-include("adapt.jl")
-export adapt
-
 
 
 include("estimators/Estimator.jl")
@@ -113,5 +85,33 @@ export ConfidenceInterval
 
 include("confidence-intervals/ClopperPearsonInterval.jl")
 export ClopperPearsonInterval
+
+
+
+include("Problem.jl")
+export Problem, OptimalDesign, optimise
+
+
+include("constraints/no-constraints.jl")
+export NoPowerConstraint, NoTypeOneErrorRateConstraint
+
+include("constraints/ExpectedPowerConstraint.jl")
+export minimal_expected_power
+
+include("constraints/MaximalTypeOneErrorRateConstraint.jl")
+export maximal_type_one_error_rate
+
+include("objectives/ExpectedSampleSize.jl")
+export minimise_expected_sample_size
+
+include("objectives/MiniMaxSampleSize.jl")
+export MiniMaxSampleSize
+
+include("objectives/ExpectedUtility.jl")
+export ExpectedUtility
+
+
+include("adapt.jl")
+export adapt
 
 end # module
