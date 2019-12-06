@@ -19,16 +19,15 @@ function ClopperPearsonInterval(ordering::Ordering, design::AbstractDesign, α::
     bounds = zeros(Float64, nn, 2)
     for i in 1:nn
         x1, x2 = XX[i,:]
-        phat   = ((x1 + x2) / n(design, x1) + 0.5)/2 # start value
         l = try
-                Roots.find_zero(p -> pval_sup(p, x1, x2) - (α + ϵ), phat)
+                Roots.find_zero(p -> pval_sup(p, x1, x2) - (α + ϵ), (ϵ, 1 - ϵ))
             catch e
-                isa(e, Roots.ConvergenceFailed) ? 0.0 : e
+                isa(e, Roots.ConvergenceFailed) | isa(e, Roots.ArgumentError) ? 0.0 : e
         end
         u = try
-                Roots.find_zero(p -> pval_inf(p, x1, x2) - (α + ϵ), phat)
+                Roots.find_zero(p -> pval_inf(p, x1, x2) - (α + ϵ), (ϵ, 1 - ϵ))
             catch e
-                isa(e, Roots.ConvergenceFailed) ? 1.0 : e
+                isa(e, Roots.ConvergenceFailed) | isa(e, Roots.ArgumentError) ? 1.0 : e
         end
         u <= l ? error("confidence interval collapsed") : nothing
         bounds[i,:] .= [l, u]
