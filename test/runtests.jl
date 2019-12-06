@@ -14,4 +14,4 @@ include("test_PosteriorMean.jl")
 include("test_RaoBlackwellEstimator.jl")
 include("test_CompatibleMLE.jl")
 
-include("test_interval.jl")
+include("test_intervals.jl")
