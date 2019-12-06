@@ -18,7 +18,6 @@ function PosteriorCredibleInterval(prior::Prior, design::AbstractDesign, α::Rea
     for i in 1:nn
         x1, x2    = XX[i,:]
         posterior = update(prior, x1 + x2, n(design, x1))
-        l, u      = posterior.low, posterior.high
         phat      = (x1 + x2) / n(design, x1)
         quantile  = prob -> Roots.find_zero(p -> cdf(p, posterior) - prob, phat)
         l = try
