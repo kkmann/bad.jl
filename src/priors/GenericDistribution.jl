@@ -21,7 +21,7 @@ function GenericDistribution(f::Function; low::Real = 0, high::Real = 1)::Generi
         convert(Vector{Float64}, p),
         convert(Vector{Float64}, ω),
         convert(Vector{Float64}, pdf),
-        f,
+        pdf_function,
         convert(Float64, low),
         convert(Float64, high)
     )
@@ -44,7 +44,7 @@ end
 
 function cdf(p::TR, prior::GenericDistribution{TR})::TR where {TR<:Real}
 
-    return quadgk(prior.pdf_function, 0, p)[1]
+    return max(0.0, min(1.0, quadgk(prior.pdf_function, 0, p)[1]))
 end
 
 function expectation(f::Function, prior::GenericDistribution{TR})::TR where

@@ -9,7 +9,7 @@ end
 string(ci::PosteriorCredibleInterval) = @sprintf "PosteriorCredibleInterval<%s>" string(ci.prior)
 
 
-function PosteriorCredibleInterval(prior::Prior, design::AbstractDesign, α::Real)
+function PosteriorCredibleInterval(prior::Prior, design::AbstractDesign, α::Real; ϵ = 1e-4)
 
     XX = sample_space(design)
     nn = size(XX, 1)
@@ -19,7 +19,7 @@ function PosteriorCredibleInterval(prior::Prior, design::AbstractDesign, α::Rea
         x1, x2    = XX[i,:]
         posterior = update(prior, x1 + x2, n(design, x1))
         phat      = (x1 + x2) / n(design, x1)
-        quantile  = prob -> Roots.find_zero(p -> cdf(p, posterior) - prob, phat)
+        quantile  = prob -> Roots.find_zero(p -> cdf(p, posterior) - prob, (ϵ, 1 - ϵ))
         l = try
                 quantile(α)
             catch e

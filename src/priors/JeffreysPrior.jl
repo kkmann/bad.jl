@@ -49,7 +49,7 @@ end
 function cdf(p::TR, prior::JeffreysPrior{TR,TD})::TR where
     {TR<:Real,TD<:AbstractDesign}
 
-    return quadgk(prior.pdf_function, 0, p)[1]
+    return min(1.0, max(0.0, quadgk(prior.pdf_function, 0, p)[1]))
 end
 
 function expectation(f::Function, prior::JeffreysPrior{TR,TD})::TR where

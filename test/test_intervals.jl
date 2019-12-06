@@ -30,3 +30,12 @@ coverage_probability(cci, .5)
 mean_width(cci, .3)
 
 @test !compatible(cci, design, p0)
+
+jprior = JeffreysPrior(design)
+jci = PosteriorCredibleInterval(jprior, design, α)
+
+cci(0, 0)
+coverage_probability(cci, .5)
+mean_width(cci, .3)
+
+@test !compatible(cci, design, p0)
