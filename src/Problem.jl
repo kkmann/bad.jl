@@ -178,7 +178,9 @@ end
 
 
 
-function optimise(problem::Problem; verbosity = 3, timelimit = 300)
+function optimise(problem::Problem; verbosity = 3, timelimit = 300,
+    mle_incompatible_is_error = true)
+
     tick()
     m, ind, n1_selected = get_IP_model(problem)
     time_problem_generation = tok()
@@ -214,7 +216,11 @@ function optimise(problem::Problem; verbosity = 3, timelimit = 300)
     )
     design = OptimalDesign(n2_res, c2_res, problem, score, info)
     if !compatible(MaximumLikelihoodEstimator(), design, p0(problem.toer), α(problem.toer))[1]
-        error("design is incompatible with MLE")
+        if mle_incompatible_is_error
+            error("design is incompatible with MLE")
+        else
+            println(compatible(MaximumLikelihoodEstimator(), design, p0(problem.toer), α(problem.toer)))
+        end
     end
     return design
 end

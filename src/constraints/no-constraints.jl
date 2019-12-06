@@ -29,3 +29,6 @@ function valid(n1, x1, n2, cnstr::NoTypeOneErrorRateConstraint)
         (return false) : nothing
     return true
 end
+
+add!(m, ind, cnstr::Constraint, problem::Problem) = nothing
+add!(m, ind, cnstr::Constraint, problem::Problem, xx1, nn1, old_design::AbstractDesign) = nothing
