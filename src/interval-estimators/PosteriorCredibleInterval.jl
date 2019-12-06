@@ -9,7 +9,7 @@ end
 string(ci::PosteriorCredibleInterval) = @sprintf "PosteriorCredibleInterval<%s>" string(ci.prior)
 
 
-function PosteriorCredibleInterval(prior::Union{Beta,GenericDistribution,JeffreysPrior}, design::AbstractDesign, α::Real)
+function PosteriorCredibleInterval(prior::Prior, design::AbstractDesign, α::Real)
 
     XX = sample_space(design)
     nn = size(XX, 1)
