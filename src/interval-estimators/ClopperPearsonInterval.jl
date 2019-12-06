@@ -19,7 +19,7 @@ function ClopperPearsonInterval(ordering::Ordering, design::AbstractDesign, α::
     bounds = zeros(Float64, nn, 2)
     for i in 1:nn
         x1, x2 = XX[i,:]
-        phat   = (x1 + x2) / n(design, x1)
+        phat   = ((x1 + x2) / n(design, x1) + 0.5)/2 # start value
         l = try
                 Roots.find_zero(p -> pval_sup(p, x1, x2) - (α + ϵ), phat)
             catch e
@@ -34,4 +34,18 @@ function ClopperPearsonInterval(ordering::Ordering, design::AbstractDesign, α::
         bounds[i,:] .= [l, u]
     end
     return ClopperPearsonInterval{typeof(ordering),typeof(design),eltype(XX),Float64}(ordering, design, XX, bounds, α)
+end
+
+function ClopperPearsonInterval(estimator::Estimator, design::AbstractDesign, α::Real; ϵ = 1e-6)
+
+    return ClopperPearsonInterval(EstimatorOrdering(estimator), design, α; ϵ = ϵ)
+end
+
+function compatible(ci::IntervalEstimator, design::AbstractDesign, p0::Real)
+
+    XX     = sample_space(design)
+    reject = reject_null.(XX[:,1], XX[:,2], design)
+    reject_ci_covers        = findall((ci.bounds[:,1] .<= p0) .& reject)
+    not_reject_ci_not_cover = findall((ci.bounds[:,1] .> p0) .& .!reject)
+    return length(reject_ci_covers) + length(not_reject_ci_not_cover) == 0
 end
