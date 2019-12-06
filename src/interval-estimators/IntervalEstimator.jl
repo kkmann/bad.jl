@@ -1,6 +1,6 @@
 abstract type IntervalEstimator end
 
-Base.iterate(estimator::IntervalEstimator, state = 0) = state > 0 ? nothing : (ci, state + 1)
+Base.iterate(estimator::IntervalEstimator, state = 0) = state > 0 ? nothing : (estimator, state + 1)
 Base.length(estimator::IntervalEstimator) = 1
 
 Base.show(io::IO, estimator::IntervalEstimator) = print(io, string(estimator))

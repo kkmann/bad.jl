@@ -83,7 +83,7 @@ export PValue, evaluate
 
 
 include("interval-estimators/IntervalEstimator.jl")
-export IntervalEstimator, coverage_probability, mean_width
+export IntervalEstimator, get_bounds, coverage_probability, mean_width
 
 include("interval-estimators/ClopperPearsonInterval.jl")
 export ClopperPearsonInterval
