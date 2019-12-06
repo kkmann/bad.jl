@@ -14,9 +14,11 @@ ordering = EstimatorOrdering(mle)
 
 ci = ClopperPearsonInterval(ordering, design, α)
 
-ci(0, 0)
-coverage_probability(ci, .5)
+ci([0], [0])
+coverage_probability(ci, [.5])
 mean_width(ci, .3)
+
+
 
 @test compatible(ci, design, p0)
 

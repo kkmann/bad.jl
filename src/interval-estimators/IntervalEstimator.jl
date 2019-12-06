@@ -19,7 +19,13 @@ function get_bounds(estimator::IntervalEstimator, x1::TI, x2::TI) where {TI<:Int
     end
     error("(x1,x2) not found in sample space, valid observation?")
 end
+function get_bounds(estimator::IntervalEstimator, x1::Vector{TI}, x2::Vector{TI}) where {TI<:Integer}
+
+    return convert(Matrix{eltype(estimator.bounds)}, hcat(get_bounds.(estimator, x1, x2)...)')
+end
+
 (estimator::IntervalEstimator)(x1::TI, x2::TI) where {TI<:Integer} = get_bounds(estimator, x1, x2)
+(estimator::IntervalEstimator)(x1::Vector{TI}, x2::Vector{TI}) where {TI<:Integer} = get_bounds(estimator, x1, x2)
 
 
 
@@ -33,6 +39,10 @@ function coverage_probability(estimator::IntervalEstimator, p::Real)
     return [lower, joint, upper]
 end
 
+function coverage_probability(estimator::IntervalEstimator, p::Vector{TR}) where {TR<:Real}
+
+    return convert(Matrix{TR}, hcat(coverage_probability.(estimator, p)...)')
+end
 
 
 function mean_width(estimator::IntervalEstimator, p::Real)
