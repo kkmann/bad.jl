@@ -19,36 +19,38 @@ end
 
 string(ordering::EstimatorOrdering) = "EstimatorOrdering"
 
-function more_extreme(x1::TI, x2::TI, x1_::TI, x2_::TI, ordering::EstimatorOrdering, design::TD)  where {TI<:Integer,TD<:AbstractDesign}
+function more_extreme(x1::TI, x2::TI, x1_::TI, x2_::TI,
+    ordering::EstimatorOrdering, design::TD; orientation = nothing)  where {TI<:Integer,TD<:AbstractDesign}
 
-    if ordering.orientation == :superiority
+    orientation = (orientation == nothing) ? ordering.orientation : orientation
+    if orientation == :superiority
         return ordering.estimator(x1, x2, design) >= ordering.estimator(x1_, x2_, design)
     end
-    if ordering.orientation == :inferiority
+    if orientation == :inferiority
         return ordering.estimator(x1, x2, design) <= ordering.estimator(x1_, x2_, design)
     end
     error("orientation must be :superiororit or :inferiority")
 end
 
-function more_extreme(x1::TI, x2::TI, x1_::TI, x2_::TI, estimator::TE, design::TD)  where {TI<:Integer,TE<:Estimator,TD<:AbstractDesign}
+function more_extreme(x1::TI, x2::TI, x1_::TI, x2_::TI, estimator::TE,
+    design::TD; orientation = nothing)  where {TI<:Integer,TE<:Estimator,TD<:AbstractDesign}
 
-    return more_extreme(x1, x2, x1_, x2_, EstimatorOrdering(estimator), design)
+    return more_extreme(x1, x2, x1_, x2_, EstimatorOrdering(estimator), design,
+        orientation = oreintation)
 end
 
 
 
-function p_value(x1::TI, x2::TI, p0::TR, ordering::TO, design::TD) where {TI<:Integer,TR<:Real,TO<:Ordering,TD<:AbstractDesign}
+function p_value(x1::TI, x2::TI, p0::TR, ordering::TO, design::TD; orientation = nothing) where {TI<:Integer,TR<:Real,TO<:Ordering,TD<:AbstractDesign}
 
     XX   = sample_space(design)
-    inds = more_extreme.(XX[:,1], XX[:,2], x1, x2, ordering, design)
+    inds = more_extreme.(XX[:,1], XX[:,2], x1, x2, ordering, design, orientation = orientation)
     return min(1, max(0, sum(pdf.(XX[:,1], XX[:,2], design, p0)[inds]) ) )
 end
 
 function p_value(x1::TI, x2::TI, p0::TR, estimator::TE, design::TD; orientation::Symbol = :superiority) where {TI<:Integer,TR<:Real,TE<:Estimator,TD<:AbstractDesign}
 
-    XX   = sample_space(design)
-    inds = more_extreme.(XX[:,1], XX[:,2], x1, x2, EstimatorOrdering(estimator, orientation), design)
-    return min(1, max(0, sum(pdf.(XX[:,1], XX[:,2], design, p0)[inds]) ) )
+    return p_value(x1, x2, p0, EstimatorOrdering(estimator, orientation), design)
 end
 
 

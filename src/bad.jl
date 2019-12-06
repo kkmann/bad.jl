@@ -15,6 +15,8 @@ import Distributions, Distributions.cdf, Distributions.pdf
 
 import QuadGK.quadgk, QuadGK.gauss
 
+import Roots
+
 using JuMP, GLPK, Ipopt
 GLPK.jl_set_preemptive_check(false) # faster!
 
@@ -80,12 +82,14 @@ export PValue, evaluate
 
 
 
-include("confidence-intervals/ConfidenceInterval.jl")
-export ConfidenceInterval
+include("interval-estimators/IntervalEstimator.jl")
+export IntervalEstimator, coverage_probability, mean_width
 
-include("confidence-intervals/ClopperPearsonInterval.jl")
+include("interval-estimators/ClopperPearsonInterval.jl")
 export ClopperPearsonInterval
 
+include("interval-estimators/PosteriorCredibleInterval.jl")
+export PosteriorCredibleInterval
 
 
 include("Problem.jl")
