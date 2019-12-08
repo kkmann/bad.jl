@@ -37,6 +37,6 @@ function MarginalFeasibleSpace(
         palt,
         β
     )
-)
+end
 
 n1(mfs::MarginalFeasibleSpace) = mfs.n1values
