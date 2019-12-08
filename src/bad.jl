@@ -115,7 +115,13 @@ include("objectives/ExpectedUtility.jl")
 export ExpectedUtility
 
 
-include("adapt.jl")
-export adapt
+include("pmf.jl")
+export pmf, pmf_x2_given_x1
+include("Score.jl")
+export SampleSize, Power, TypeOneErrorRate
+
+
+include("adapt_stage_one.jl")
+export adapt_stage_one
 
 end # module

@@ -1,4 +1,15 @@
-function adapt(design::OptimalDesign, xx1, nn1)
+function pdf_k_less_n1(x1, x2, k, x_leq_k, design, prior)
+    return expectation(
+        p -> binomial(n2(design, x1), x2) *
+            binomial(n1 - x_leq_k, x1 - x_leq_k) *
+            p^(x1 + x2 - x_leq_k) *
+            (1 - p)^(n(design, x1) - x1 - x2 + x_leq_k),
+        prior
+    )
+end
+
+
+function adapt_stage_one(design::TD) where {TD<:AbstractDesign}
     design = deepcopy(design)
     design.model.n1values = design.model.n1values[design.model.n1values .>= nn1]
     length(design.model.n1values) == 0 ? error("no n1values left!") : nothing

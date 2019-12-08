@@ -36,6 +36,10 @@ function pdf(x1::TI, x2::TI, design::TD, p::TR) where {TI<:Integer,TR<:Real,TD<:
 
     return dbinom(x1, n1(design), p) * dbinom(x2, n2(design,x1), p)
 end
+function pdf(x1::TI, x2::TI, design::TD, prior::TP) where {TI<:Integer,TP<:Prior,TD<:AbstractDesign}
+
+    return expectation(p -> dbinom(x1, n1(design), p) * dbinom(x2, n2(design,x1), p), prior)
+end
 
 function as_table(design::AbstractDesign)
     DataFrames.DataFrame(
@@ -58,10 +62,16 @@ end
 
 
 
-sample_space(design::AbstractDesign) =
-    [ [x1, x2] for x1 in 0:n1(design), x2 in 0:maximum(design.n2) if valid(design, x1, x2) ] |>
-    x -> hcat(x...)' |>
-    x -> convert(Array{Int,2}, x)
+function sample_space(design::TD) where {TD<:AbstractDesign}
+
+    return [ [x1, x2] for x1 in 0:n1(design) for x2 in 0:n2(design, x1) ] |>
+        x -> hcat(x...)' |>
+        x -> convert(Array{eltype(x),2}, x)
+end
+
+function sample_space(design::TD, x1::TI) where {TI<:Integer,TD<:AbstractDesign}
+    return collect(0:n2(design, x1))
+end
 
 reject_null(x2::Int, c2::Real) = x2 > c2
 

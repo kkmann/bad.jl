@@ -6,7 +6,7 @@ mutable struct ExpectedPowerConstraint <: PowerConstraint
 end
 
 minimal_expected_power(prior::Prior, mrv::Real, threshold::Real;
-    conditional_threshold::Real = .5, power_curtail = .999) =
+    conditional_threshold::Real = .5, power_curtail = .99) =
     ExpectedPowerConstraint(threshold, conditional_threshold, condition(prior, low = mrv), power_curtail)
 
 function (cnstr::ExpectedPowerConstraint)(design::AbstractDesign)

@@ -32,16 +32,6 @@ function pdf(p::TR, prior::GenericDistribution{TR})::TR where {TR<:Real}
     return prior.pdf_function(p)
 end
 
-function pdf(x1::TI, x2::TI, design::TD, prior::GenericDistribution{T})::T where
-    {T<:Real,TI<:Integer,TD<:AbstractDesign}
-
-    return (prior.high - prior.low)/2 * sum( prior.pdf .*
-        dbinom.(x1, n1(design), prior.pivots) .*
-        dbinom.(x2, n2(design,x1), prior.pivots) .*
-        prior.weights
-    )
-end
-
 function cdf(p::TR, prior::GenericDistribution{TR})::TR where {TR<:Real}
 
     return max(0.0, min(1.0, quadgk(prior.pdf_function, 0, p)[1]))
