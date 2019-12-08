@@ -1,13 +1,13 @@
 using Test
 
-prior = Beta(mean = .35, sd = .1)
+prior = Beta(mean = .4, sd = .1)
 pnull = .2
 pmcr  = .3
 α, β  = .05, .2
 
 design = Problem(
         minimise_expected_sample_size(prior),
-        maximal_type_one_error_rate(p0, α),
+        maximal_type_one_error_rate(pnull, α),
         minimal_expected_power(prior, pmcr, 1 - β)
     ) |>
     optimise

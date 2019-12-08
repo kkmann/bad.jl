@@ -121,6 +121,9 @@ include("Score.jl")
 export SampleSize, Power, TypeOneErrorRate
 
 
+include("MarginalFeasibleSpace.jl")
+
+
 include("adapt_stage_one.jl")
 export adapt_stage_one
 
