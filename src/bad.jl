@@ -7,8 +7,6 @@ import Printf.@printf, Printf.@sprintf
 
 import ProgressMeter
 
-import TickTock.tick, TickTock.tok
-
 import SpecialFunctions.gamma, SpecialFunctions.beta_inc
 
 import Distributions, Distributions.cdf, Distributions.pdf
@@ -116,7 +114,6 @@ export MiniMaxSampleSize
 include("constraints.jl")
 export PowerConstraint, TypeOneErrorRateConstraint, subject_to
 
-# include("adapt_stage_one.jl")
-# export adapt_stage_one
+
 
 end # module

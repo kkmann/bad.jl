@@ -88,7 +88,7 @@ mutable struct Power{TP<:Prior,TR<:Real} <: Score
     pmcr::TR
     Power{TP,TR}(prior::TP, pmcr::TR) where{TP<:Prior,TR<:Real} = new(pmcr <= prior, pmcr)
 end
-Power(prior::Prior, pmcr::Real) = Power{typeof(prior),typeof(pmcr)}(prior, pmcr)
+Power(prior::Prior; pmcr::Real = bounds(prior)[1]) = Power{typeof(prior),typeof(pmcr)}(prior, pmcr)
 Base.string(score::Power) = @sprintf "Power<%s>" string(score.prior)
 
 function evaluate(score::Power, x1::TI, n1::TI, x2::TI, n2::TI, c2::TR, p::TR)::TR where {TI<:Integer,TR<:Real}
@@ -110,7 +110,7 @@ mutable struct TypeOneErrorRate{TP<:Prior,TR<:Real} <: Score
     pnull::TR
     TypeOneErrorRate{TP,TR}(prior::TP, pnull::TR) where{TP<:Prior,TR<:Real} = new(prior <= pnull, pnull)
 end
-TypeOneErrorRate(prior::Prior, pnull::Real) = TypeOneErrorRate{typeof(prior),typeof(pnull)}(prior, pnull)
+TypeOneErrorRate(prior::Prior; pnull::Real = bounds(prior)[2]) = TypeOneErrorRate{typeof(prior),typeof(pnull)}(prior, pnull)
 Base.string(score::TypeOneErrorRate) = @sprintf "TypeOneErrorRate<%s>" string(score.prior)
 
 function evaluate(score::TypeOneErrorRate, x1::TI, n1::TI, x2::TI, n2::TI, c2::TR, p::TR)::TR where {TI<:Integer,TR<:Real}
@@ -163,3 +163,7 @@ evaluate(score::CompositeScore, design::TD, x1::TI, p::TR) where {TI<:Integer,TR
 evaluate(score::CompositeScore, design::TD, x1::TI) where {TI<:Integer,TD<:AbstractDesign} = sum( score.ω .* evaluate.(score.components, design, x1) )
 evaluate(score::CompositeScore, design::TD, p::TR) where {TR<:Real,TD<:AbstractDesign} = sum( score.ω .* evaluate.(score.components, design, p) )
 evaluate(score::CompositeScore, design::TD) where {TD<:AbstractDesign} = sum( score.ω .* evaluate.(score.components, design) )
+
+function integrand_x1(score::CompositeScore, x1::TI, n1::TI, n2::TI, c2::TR) where {TS<:Score,TI<:Integer,TR<:Real}
+    return sum( score.ω .* integrand_x1.(score.components, x1, n1, n2, c2) )
+end

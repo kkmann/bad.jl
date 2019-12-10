@@ -4,6 +4,8 @@ struct PointMass{T<:Real} <: Prior
 end
 PointMass(atom::T) where{T<:Real} = PointMass{T}(atom)
 
+bounds(prior::PointMass) = [prior.atom, prior.atom]
+
 pdf(prior::PointMass{T}, p::T) where{T<:Real} = (p == prior.atom) ? Inf : 0
 
 cdf(prior::PointMass{T}, p::T) where{T<:Real} = (p >= prior.atom) ? 1 : 0

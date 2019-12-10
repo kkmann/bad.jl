@@ -29,6 +29,7 @@ end
 
 evaluate(obj::ExpectedScoreObjective, args...) = evaluate(obj.score, args...)
 (obj::ExpectedScoreObjective)(args...) = evaluate(obj.score, args...)
+integrand_x1(obj::ExpectedScoreObjective, args...) = integrand_x1(obj.score, args...)
 
 update!(obj::ExpectedScoreObjective, x::TI, n::TI) where {TS<:Score,TI<:Integer} = update!(obj.score, x, n)
 
@@ -42,10 +43,8 @@ function add!(
     # score integrand must include a factor dbinom(x1, n1, prior) but in many
     # cases it is more effective to integrate that in the score calculation
     @objective(m, sense,
-        sum( integrand_x1(objective.score, x1, n1, n2, c2)*ind[(n1, x1, n2, c2)]
+        sum( integrand_x1(objective, x1, n1, n2, c2)*ind[(n1, x1, n2, c2)]
             for (n1, x1, n2, c2) in grid(problem)
         )
     )
 end
-
-# todo! same for composite score

@@ -84,6 +84,8 @@ end
 
 BetaMixture(ω::T, priors::Vector{Beta{T}}) where {T<:Real} = BetaMixture{T}(ω, priors)
 
+bounds(prior::BetaMixture) = [minimum(minimum.(bounds.(prior.priors))), maximum(maximum.(bounds.(prior.priors)))]
+
 *(ω::T, prior::Beta{T}) where{T<:Real} = BetaMixture{T}([ω], [prior])
 +(φ::BetaMixture{T}, η::BetaMixture{T}) where {T<:Real} = BetaMixture{T}(vcat(φ.ω, η.ω), vcat(φ.priors, η.priors))
 is_proper(mprior::BetaMixture) = sum(mprior.ω) == 1

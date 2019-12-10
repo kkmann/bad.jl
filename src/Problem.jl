@@ -202,19 +202,20 @@ function build_model(problem::Problem; verbose::Bool = true)
     end
     update_progress("adding type one error rate constraint")
     @constraint(m,
-        sum( integrand_x1(problem.toer.score, x1, n1, n2, c2) * ind[(n1, x1, n2, c2)]
+        sum( integrand_x1(problem.toer, x1, n1, n2, c2) * ind[(n1, x1, n2, c2)]
             for (n1, x1, n2, c2) in grid(problem)
         ) <= problem.toer.α
     )
     update_progress("adding power constraint")
     @constraint(m,
-        sum( integrand_x1(problem.power.score, x1, n1, n2, c2) * ind[(n1, x1, n2, c2)]
+        sum( integrand_x1(problem.power, x1, n1, n2, c2) * ind[(n1, x1, n2, c2)]
             for (n1, x1, n2, c2) in grid(problem)
         ) >= 1 - problem.power.β
     )
     update_progress("adding objective")
     add!((m, ind), problem.objective, problem)
     update_progress("ready to start ILP solver ")
+    if verbose; ProgressMeter.next!(prog) end
     return m, ind, n1_selected
 end
 
@@ -262,21 +263,21 @@ end
 function optimise(problem::Problem; verbosity = 3, timelimit = 180)
 
     info = Dict{String,Any}()
-    tick()
-    m, ind, n1_selected = build_model(problem; verbose = verbosity > 0)
-    info["model build time [s]"] = tok()
-    tick()
-    optimise!(m, verbosity, timelimit)
-    info["model solution time [s]"] = tok()
-    tick()
-    design = extract_solution(problem, ind, n1_selected)
-    info["solution extraction time [s]"] = tok()
+    _, info["model build time [s]"], _, _, _ = @timed begin
+        m, ind, n1_selected = build_model(problem; verbose = verbosity > 0)
+    end
+    _, info["model ILP solution time [s]"], _, _, _ = @timed begin
+        optimise!(m, verbosity, timelimit)
+    end
+    _, info["solution extraction time [s]"], _, _, _ = @timed begin
+        design = extract_solution(problem, ind, n1_selected)
+    end
     info["total time [s]"] = sum([val for (key, val) in info])
     info["number of variables"] = size(problem)
     pnull   = problem.toer.score.pnull
     α       = problem.toer.α
     mlecomp = mlecompatible(design, pnull, α)
-    if !mlecomp["compatible"]
+    if !mlecomp["compatible"] & (verbosity > 0)
         @warn @sprintf "design is not compatible with MLE-ordering, incompatibility degree is %i/%i" mlecomp["incompatibility degree"] size(mlecomp["details"], 1)
     end
     info["MLE-compatible"] = mlecomp
