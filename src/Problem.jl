@@ -201,22 +201,20 @@ function build_model(problem::Problem; verbose::Bool = true)
         end
     end
     update_progress("adding type one error rate constraint")
-    toer = problem.toer; prior = toer.score.prior
     @constraint(m,
-        sum( toer(x1, n1, n2, c2)*dbinom(x1, n1, prior)*ind[(n1, x1, n2, c2)]
+        sum( integrand_x1(problem.toer.score, x1, n1, n2, c2) * ind[(n1, x1, n2, c2)]
             for (n1, x1, n2, c2) in grid(problem)
-        ) <= toer.α
+        ) <= problem.toer.α
     )
     update_progress("adding power constraint")
-    pow = problem.power; prior = pow.score.prior
     @constraint(m,
-        sum( pow(x1, n1, n2, c2)*dbinom(x1, n1, prior)*ind[(n1, x1, n2, c2)]
+        sum( integrand_x1(problem.power.score, x1, n1, n2, c2) * ind[(n1, x1, n2, c2)]
             for (n1, x1, n2, c2) in grid(problem)
-        ) >= 1 - pow.β
+        ) >= 1 - problem.power.β
     )
-    if verbose; ProgressMeter.next!(prog) end
+    update_progress("adding objective")
     add!((m, ind), problem.objective, problem)
-    if verbose; ProgressMeter.finish!(prog) end
+    update_progress("ready to start ILP solver ")
     return m, ind, n1_selected
 end
 

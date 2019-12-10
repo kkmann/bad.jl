@@ -10,13 +10,11 @@ prior = update(prior3, 4, 10)
 av_toer = TypeOneErrorRate(prior, pnull)
 power = Power(prior, pmcr)
 
-evaluate(.1*power, design)
-
-PoS = (1 - cdf(pmcr, prior))*power
+PoS   = (1 - cdf(pmcr, prior))*power
 PoTOE = cdf(pnull, prior)*av_toer
-ess = SampleSize(prior)
+ess   = SampleSize(prior)
 
-utility = (-600*PoTOE) + (300*PoS) - (1*ess)
+utility = -600*PoTOE + 300*PoS - ess
 
 tmp = convert(CompositeScore, utility)
 
@@ -24,14 +22,23 @@ minimise(utility)
 
 utility(3, 10, 20, 13.)
 
+score = utility
+
+f(x1, n1, n2, c2) = sum( score.ω .* map( cpnt -> evaluate(cpnt, x1, n1, n2, c2) .* bad.dbinom(x1, n1, cpnt.prior), score.components ) )
+@time f(3, 10, 20, 13.)
+
+@time power(3, 10, 20, 13.)
+
+
+
 minimise(ess)(3, 10, 20, 13.)
 
 problem = Problem(
-    minimise(utility),
+    minimise(ess),
     subject_to(mtoer, α),
     subject_to(power, β,)
 )
-design = optimise(problem)
+@time design = optimise(problem)
 
 plot(design)
 

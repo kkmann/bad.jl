@@ -38,9 +38,14 @@ function add!(
         problem::Problem
     )
     m, ind = JuMP_model_and_indicator_variables
-    prior  = objective.score.prior
     sense  = (objective.orientation == :minimise) ? MOI.OptimizationSense(0) : MOI.OptimizationSense(1)
+    # score integrand must include a factor dbinom(x1, n1, prior) but in many
+    # cases it is more effective to integrate that in the score calculation
     @objective(m, sense,
-        sum( objective(x1, n1, n2, c2)*dbinom(x1, n1, prior)*ind[(n1, x1, n2, c2)] for (n1, x1, n2, c2) in grid(problem) )
+        sum( integrand_x1(objective.score, x1, n1, n2, c2)*ind[(n1, x1, n2, c2)]
+            for (n1, x1, n2, c2) in grid(problem)
+        )
     )
 end
+
+# todo! same for composite score
