@@ -18,6 +18,6 @@ expectation(f::Function, prior::PointMass{T}) where {T<:Real} = f(prior.atom)
 
 mean(prior::PointMass{T}) where {T<:Real} = prior.atom
 
-string(prior::PointMass) = @sprintf "PointMass(atom=%.2f)" prior.atom
+string(prior::PointMass) = @sprintf "PointMass(%.2f)" prior.atom
 
 quantile(prior::PointMass, prob::Real) = prior.atom

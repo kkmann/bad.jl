@@ -55,19 +55,32 @@ end
 
 
 
-function compatible(estimator::Estimator, design::AbstractDesign, p0::Real, α::Real)
+function compatible(ordering::Ordering, design::AbstractDesign, pnull::Real, α::Real)
 
-    !(0 <= p0 <= 1) ? error("p0 must be in [0,1]") : nothing
+    @assert (0 <= pnull <= 1) "pnull must be in [0,1]"
+
     XX                      = sample_space(design)
-    decisions               = reject_null.(XX[:, 1], XX[:, 2], design)
-    inds_reject             = findall(decisions .== 1)
-    inds_not_reject         = findall(decisions .== 0)
-    ordering                = EstimatorOrdering(estimator; orientation = :superiority)
-    pvals                   = p_value.(XX[:,1], XX[:,2], p0, ordering, design)
-    max_pval_reject         = pvals[inds_reject] |> maximum
-    incompatible_reject     = XX[findall(pvals[inds_reject] .> α), :]
-    min_pval_not_reject     = pvals[inds_not_reject] |> minimum
-    incompatible_not_rejcet = XX[findall(pvals[inds_not_reject] .<= α), :]
-    compatible              = (max_pval_reject < α) & (min_pval_not_reject >= α)
-    return compatible, max_pval_reject, min_pval_not_reject, incompatible_reject, incompatible_not_rejcet
+    design_rejects          = reject.(XX[:,1], XX[:,2], design)
+    pvals                   = p_value.(XX[:,1], XX[:,2], pnull, ordering, design)
+    ordering_rejects        = pvals .< α
+    incompatibility_degree  = sum(design_rejects .& .!ordering_rejects)
+
+    df = DataFrames.DataFrame(
+        x1 = XX[:,1],
+        x2 = XX[:,2],
+        design_rejects = design_rejects,
+        ordering_rejects = ordering_rejects,
+        p_value = pvals
+    )
+
+    return Dict{String,Any}(
+        "compatible" => incompatibility_degree == 0,
+        "incompatibility degree" => incompatibility_degree,
+        "details" => df
+    )
+end
+
+function mlecompatible(design::AbstractDesign, pnull::Real, α::Real)
+
+    return compatible(EstimatorOrdering(MaximumLikelihoodEstimator()), design, pnull, α)
 end

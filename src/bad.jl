@@ -1,13 +1,13 @@
 module bad
 
 import Base.show, Base.isless, Base.isequal, Base.-, Base.+, Base.*, Base.string,
-    Base.convert, Base.<=, Base.>=, Base.|
+    Base.convert, Base.<=, Base.>=, Base.|, Base.length, Base.size
+
+import Printf.@printf, Printf.@sprintf
 
 import ProgressMeter
 
 import TickTock.tick, TickTock.tok
-
-import Printf.@printf, Printf.@sprintf
 
 import SpecialFunctions.gamma, SpecialFunctions.beta_inc
 
@@ -22,6 +22,8 @@ GLPK.jl_set_preemptive_check(false) # faster!
 
 import DataFrames, Gadfly
 
+
+
 include("priors/Prior.jl")
 export is_proper, condition, update, pdf, cdf, mean, expectation
 
@@ -29,12 +31,14 @@ include("util.jl")
 export valid
 
 
-include("designs.jl")
-export Design, OptimalDesign, n1, n2, n, c2, early_futility, early_efficacy, as_table,
-    reject_null, sample_space, plot, expected_sample_size
 
-include("power.jl")
-export power
+include("designs.jl")
+export Design, OptimalDesign,
+    n1, n2, n, c2,
+    early_futility, early_efficacy, continuation_region, futility_region, efficacy_region, early_stop_region,
+    as_table, reject, sample_space, plot
+
+
 
 include("priors/JeffreysPrior.jl")
 export JeffreysPrior
@@ -49,10 +53,9 @@ include("priors/PointMass.jl")
 export PointMass
 
 
-include("constraints/constraints.jl")
-export update!
 
-include("objectives/Objective.jl")
+include("pmf.jl")
+export pmf, pmf_x2_given_x1
 
 
 
@@ -74,8 +77,8 @@ export CompatibleMLE
 
 
 include("orderings/Ordering.jl")
-export smaller_or_equal, strictly_smaller, larger_or_equal, strictly_larger,
-    p_value, compatible, EstimatorOrdering
+export EstimatorOrdering, more_extreme, p_value,
+    compatible, mlecompatible
 
 include("orderings/PValue.jl")
 export PValue, evaluate
@@ -83,7 +86,8 @@ export PValue, evaluate
 
 
 include("interval-estimators/IntervalEstimator.jl")
-export IntervalEstimator, get_bounds, coverage_probability, mean_width
+export IntervalEstimator, get_bounds, coverage_probability, mean_width,
+    compatible
 
 include("interval-estimators/ClopperPearsonInterval.jl")
 export ClopperPearsonInterval
@@ -92,39 +96,27 @@ include("interval-estimators/PosteriorCredibleInterval.jl")
 export PosteriorCredibleInterval
 
 
+
+include("Score.jl")
+export update!,
+    SampleSize, Power, TypeOneErrorRate,
+    CompositeScore
+
+
+
 include("Problem.jl")
-export Problem, OptimalDesign, optimise
+export Problem, optimise
 
-
-include("constraints/no-constraints.jl")
-export NoPowerConstraint, NoTypeOneErrorRateConstraint
-
-include("constraints/ExpectedPowerConstraint.jl")
-export minimal_expected_power
-
-include("constraints/MaximalTypeOneErrorRateConstraint.jl")
-export maximal_type_one_error_rate
-
-include("objectives/ExpectedSampleSize.jl")
-export minimise_expected_sample_size
+include("objectives/Objective.jl")
+export ScoreObjective, minimise, maximise
 
 include("objectives/MiniMaxSampleSize.jl")
 export MiniMaxSampleSize
 
-include("objectives/ExpectedUtility.jl")
-export ExpectedUtility
+include("constraints.jl")
+export PowerConstraint, TypeOneErrorRateConstraint, subject_to
 
-
-include("pmf.jl")
-export pmf, pmf_x2_given_x1
-include("Score.jl")
-export SampleSize, Power, TypeOneErrorRate
-
-
-include("MarginalFeasibleSpace.jl")
-
-
-include("adapt_stage_one.jl")
-export adapt_stage_one
+# include("adapt_stage_one.jl")
+# export adapt_stage_one
 
 end # module

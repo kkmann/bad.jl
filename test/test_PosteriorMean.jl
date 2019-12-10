@@ -1,14 +1,5 @@
 using Test
 
-p0, α     = .2, .05
-α, β      = .05, .2
-prior     = ( .2*Beta(1, 1) + .8*Beta(5, 7) ) <= .6
-design    = Problem(
-                minimise_expected_sample_size(prior),
-                maximal_type_one_error_rate(p0, α),
-                minimal_expected_power(prior, p0 + .1, 1 - β),
-        ) |> optimise
-
 𝚾 = sample_space(design)
 
 pme1 = PosteriorMean(prior)

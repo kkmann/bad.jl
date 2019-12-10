@@ -13,10 +13,10 @@ shan_c   = vcat(
 design = Design(shan_n2, shan_c .- (0:shan_n1))
 
 mle  = MaximumLikelihoodEstimator()
-@test !compatible(mle, design, p0, α)[1]
+@test !mlecompatible(design, p0, α)["compatible"]
 
 cmle = CompatibleMLE(design)
-@test compatible(cmle, design, p0, α)[1]
+@test compatible(EstimatorOrdering(cmle), design, p0, α)["compatible"]
 
 XX    = sample_space(design)
 resid = cmle.(XX[:,1], XX[:,2], design) .- mle.(XX[:,1], XX[:,2], design)
@@ -25,32 +25,43 @@ resid = cmle.(XX[:,1], XX[:,2], design) .- mle.(XX[:,1], XX[:,2], design)
 
 
 α, β = .05, .2
-design_h0 = (p0, p1) -> Problem(
-                minimise_expected_sample_size(PointMass(p0)),
-                maximal_type_one_error_rate(p0, α),
-                minimal_expected_power(PointMass(p1), p0, 1 - β),
-        ) |> pr -> optimise(pr, mle_incompatible_is_error = false)
-design_h1 = (p0, p1) -> Problem(
-                minimise_expected_sample_size(PointMass(p1)),
-                maximal_type_one_error_rate(p0, α),
-                minimal_expected_power(PointMass(p1), p0, 1 - β),
-        ) |> pr -> optimise(pr, mle_incompatible_is_error = false)
+function designh0(p0, p1)
+    mtoer = TypeOneErrorRate(PointMass(p0), p0)
+    power = Power(PointMass(p1), p1)
+    problem = Problem(
+        minimise(SampleSize(PointMass(p0))),
+        subject_to(mtoer, α),
+        subject_to(power, β)
+    )
+    design = optimise(problem)
+end
+function designh1(p0, p1)
+    mtoer = TypeOneErrorRate(PointMass(p0), p0)
+    power = Power(PointMass(p1), p1)
+    problem = Problem(
+        minimise(SampleSize(PointMass(p1))),
+        subject_to(mtoer, α),
+        subject_to(power, β)
+    )
+    design = optimise(problem)
+end
 
 function test_design(design, p0)
+
     cmle  = CompatibleMLE(design)
-    @test compatible(cmle, design, p0, α)[1]
+    @test compatible(EstimatorOrdering(cmle), design, p0, α)["compatible"]
     mle   = MaximumLikelihoodEstimator()
     XX    = sample_space(design)
     resid = cmle.(XX[:,1], XX[:,2], design) .- mle.(XX[:,1], XX[:,2], design)
-    if compatible(mle, design, p0, α)[1]
-        @test maximum(resid) < 1e-4 # numerical inaccuracy
+    if mlecompatible(design, p0, α)["compatible"]
+        @test maximum(resid) < 5*1e-4 # numerical inaccuracy
     else
-        @test maximum(resid) < 1e-2
+        @test maximum(resid) < 5*1e-2
     end
 end
 
 for p0 = 0.1:.1:.7
         p1 = p0 .+ .2
-        test_design(design_h0(p0, p1), p0)
-        test_design(design_h1(p0, p1), p0)
+        test_design(designh0(p0, p1), p0)
+        test_design(designh1(p0, p1), p0)
 end

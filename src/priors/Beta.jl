@@ -34,8 +34,7 @@ function Beta(;mean::Real = .5, sd::Real = sqrt(1/12))
 end
 
 function pdf(p::T, prior::Beta{T})::T where {T<:Real}
-    p < prior.low ? (return 0.0) : nothing
-    p > prior.high ? (return 1.0) : nothing
+    if !(prior.low <= p <= prior.high); return 0.0 end
     F(p) = cdf(Distributions.Beta(prior.a, prior.b), p)
     return pdf(Distributions.Beta(prior.a, prior.b), p) / ((F(prior.high) - F(prior.low)))
 end
@@ -64,7 +63,7 @@ end
 
 function update(prior::Beta{T}, x::TI, n::TI)::Beta{T} where {T<:Real,TI<:Integer}
 
-    !(0 <= x <= n) ? error("invalid x / n") : nothing
+    !(0 <= x <= n) ? error(@sprintf "invalid x=%i / n=%i " x n) : nothing
     return Beta(prior.a + x, prior.b + n - x; low = prior.low, high = prior.high)
 end
 

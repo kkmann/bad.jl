@@ -15,12 +15,12 @@ function (estimator::CompatibleMLE)(x1::TI, x2::TI, design::TD) where {TI<:Integ
     error("(x1,x2) not found in sample space, valid observation?")
 end
 
-function CompatibleMLE(design::TD; λ = .5, ϵ = 1e-4, smoothmax_scale = 100., max_iter = 10^4) where {TD<:AbstractDesign}
+function CompatibleMLE(design::TD; λ = .5, ϵ = 1e-4, smoothmax_scale = 1., max_iter = 10^4) where {TD<:AbstractDesign}
 
     XX = sample_space(design)
     # precompute test decisions and get indices for rejection/non-rejection
     # regions into XX
-    decisions       = reject_null.(XX[:, 1], XX[:, 2], design)
+    decisions       = reject.(XX[:, 1], XX[:, 2], design)
     inds_reject     = findall(decisions .== 1)
     inds_not_reject = findall(decisions .== 0)
     # precompute mles

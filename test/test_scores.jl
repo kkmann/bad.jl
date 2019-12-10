@@ -1,53 +1,43 @@
 using Test
 
-p0    = .2
-pmcr  = .3
-prior = Beta(5, 7)
-α, β  = .05, .2
 
-design = Problem(
-        minimise_expected_sample_size(prior),
-        maximal_type_one_error_rate(p0, α),
-        minimal_expected_power(prior, pmcr, 1 - β),
-    ) |> optimise
 
 samplesize = SampleSize(prior)
 
-XX = sample_space(design)
-
-pdf.(XX[:,1], XX[:,2], design, prior) |> sum
-
-evaluate.(samplesize, design, XX[:,1], XX[:,2], .5)
-
-
-evaluate(samplesize, design, 0, 0, .2)
-evaluate(samplesize, design, 0, 0)
-evaluate(samplesize, design, 0, .2)
-evaluate(samplesize, design, 0)
-evaluate(samplesize, design, .2)
-evaluate(samplesize, design)
-
-@time evaluate(samplesize, design)
-
-@time expectation(p -> expected_sample_size(design, p), prior)
+@test n1(design) == samplesize(design, 0, 0, .2)
+@test n1(design) ≈ samplesize(design, 0, 0)
+@test all( n1(design) .≈ samplesize.(design, early_stop_region(design), .2) )
+@test all( n1(design) .≈ samplesize.(design,  early_stop_region(design)) )
+@test all( n1(design) .< samplesize.(design,  continuation_region(design)) )
+@test abs(28.4 - samplesize(design, .2)) < 1e-1
 
 
 
 pow = Power(prior, pmcr)
 
-evaluate(pow, design, 0, 0, .2)
-evaluate(pow, design, 0, 0)
-evaluate(pow, design, 6, 0)
-evaluate(pow, design, 6, .2)
-evaluate(pow, design, 5)
-evaluate(pow, design, .2)
-evaluate(pow, design)
+@test 0 ≈ pow(design, 0, 0, .2)
+@test (0 .≈ pow.(design, futility_region(design), .4) ) |> all
+@test (0 .≈ pow.(design, futility_region(design)) ) |> all
+@test (1 .≈ pow.(design, efficacy_region(design), .4) ) |> all
+@test (1 .≈ pow.(design, efficacy_region(design)) ) |> all
+@test (0 .≈ pow.(design, continuation_region(design), 0)) |> all
+@test (0.5 .< pow.(design, continuation_region(design)) .< .99) |> all
+@test 0 ≈ pow(design, 6, .2)
+@test 0 ≈ pow(design, .2)
+@test α <= pow(design, pmcr) <= 1 - β
+@test abs(1 - β - pow(design)) < 1e-3
 
-toer = TypeOneErrorRate(prior, p0)
-evaluate(toer, design, 0, 0, .2)
-evaluate(toer, design, 0, 0)
-evaluate(toer, design, 6, 0)
-evaluate(toer, design, 6, .2)
-evaluate(toer, design, 5)
-evaluate(toer, design, .2)
-evaluate(toer, design)
+
+
+toer = TypeOneErrorRate(prior, pnull)
+
+@test 0 ≈ toer(design, 0, 0, .2)
+@test (0 .≈ toer.(design, futility_region(design), .1) ) |> all
+@test (0 .≈ toer.(design, futility_region(design)) ) |> all
+@test (1 .≈ toer.(design, efficacy_region(design), .1) ) |> all
+@test (1 .≈ toer.(design, efficacy_region(design)) ) |> all
+@test (0 .≈ toer.(design, continuation_region(design), 0)) |> all
+@test (0.0 .< toer.(design, continuation_region(design)) .< .99) |> all
+@test 1 ≈ toer(design, 9, pnull)
+@test toer(design, pnull) <= α
+@test toer(design, pnull/2) < toer(design, pnull)
