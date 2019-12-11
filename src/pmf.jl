@@ -35,6 +35,7 @@ function cdf(x::TR1, n::TI, p::TR2; xpartial::TI = 0, npartial::TI = 0) where {T
 
     if x < 0; return 0.0 end
     if x > n; return 1.0 end
+    if x == n; return 1.0 end
     if !(0 <= xpartial <= npartial <= n)
         throw(DomainError((xpartial, npartial), @sprintf "0 <= xpartial=%i <= npartial=%i <= n=%i violated" x1partial n1partial n))
     end

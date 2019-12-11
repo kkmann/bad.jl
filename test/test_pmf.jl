@@ -1,6 +1,16 @@
 using Test, bad
 
+import Distributions
 import Plots
+
+
+
+p = 0:0.1:1
+for n in 0:15, x = 0:n, pp in p
+    @test Distributions.pdf.(Distributions.Binomial(n, pp), x) ≈ pmf(x, n, pp)
+    @test Distributions.cdf.(Distributions.Binomial(n, pp), x) ≈ cdf(x, n, pp)
+end
+
 
 
 p = Beta(5, 7)
