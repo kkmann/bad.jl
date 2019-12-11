@@ -32,7 +32,7 @@ function add!(
     @objective(m, Min,
         (1 - objective.λ)*nmax +
         objective.λ*sum(
-            (n1 + n2) * dbinom(x1, n1, objective.prior) * ind[(n1, x1, n2, c2)]
+            (n1 + n2) * pmf(x1, n1, objective.prior) * ind[(n1, x1, n2, c2)]
                 for (n1, x1, n2, c2) in grid(problem)
         )
     )
