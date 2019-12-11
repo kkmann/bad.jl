@@ -63,7 +63,7 @@ end
 function update(prior::JeffreysPrior{TR,TD}, x::TI, n::TI)::GenericDistribution{TR} where
     {TR<:Real,TI<:Integer,TD<:AbstractDesign}
 
-    return GenericDistribution( p -> pdf(p, prior) * dbinom(x, n, p) )
+    return GenericDistribution( p -> pdf(p, prior) * pmf(x, n, p) )
 end
 
 function string(prior::JeffreysPrior)

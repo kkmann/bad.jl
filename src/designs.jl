@@ -35,14 +35,7 @@ early_stop_region(design::AbstractDesign) = vcat(futility_region(design), effica
 
 c2(design::AbstractDesign, x1::Int)    = valid(design, x1) ? design.c2[x1 + 1] : error("0 <= x1 <= n1 violated")
 
-function pdf(x1::TI, x2::TI, design::TD, p::TR) where {TI<:Integer,TR<:Real,TD<:AbstractDesign}
 
-    return dbinom(x1, n1(design), p) * dbinom(x2, n2(design,x1), p)
-end
-function pdf(x1::TI, x2::TI, design::TD, prior::TP) where {TI<:Integer,TP<:Prior,TD<:AbstractDesign}
-
-    return expectation(p -> dbinom(x1, n1(design), p) * dbinom(x2, n2(design,x1), p), prior)
-end
 
 function as_table(design::AbstractDesign)
     DataFrames.DataFrame(
@@ -54,6 +47,8 @@ function as_table(design::AbstractDesign)
         c2 = design.c2
     )
 end
+
+
 
 function plot(design::AbstractDesign)
     tbl = as_table(design)
@@ -90,9 +85,9 @@ valid(design::AbstractDesign, x1::Int, x2::Int) = valid(design, x1) & (0 <= x2 <
 function fisher_information(p::T, design::TD)::T where {T<:Real,TD<:AbstractDesign}
     # 0 < p < 1 ? nothing : error("p must be in (0, 1)")
     (p ≈ 0) | (p ≈ 1) ? (return Inf) : nothing
-    x1_x2     = sample_space(design)
-    log_prob  = log.(dbinom.(x1_x2[:, 1], n1(design), p)) .+ log.(dbinom.(x1_x2[:, 2], n2.(design, x1_x2[:, 1]), p))
-    return sum(exp.(log_prob .+ log.(fisher_information_integrand.(p, x1_x2[:, 1] + x1_x2[:, 2], n.(design, x1_x2[:, 1])))))
+    XX        = sample_space(design)
+    log_prob  = log.(pmf.(XX[:, 1], XX[:, 2], design, p))
+    return sum(exp.(log_prob .+ log.(fisher_information_integrand.(p, XX[:, 1] + XX[:, 2], n.(design, XX[:, 1])))))
 end
 
 

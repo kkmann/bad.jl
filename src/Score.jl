@@ -63,7 +63,7 @@ evaluate(score::TS, design::TD) where {TI<:Integer,TD<:AbstractDesign,TS<:Score}
 # this is the only thing that actually used during optmisation
 # feel free to implemnt specific, more efficient versions for each score!
 function integrand_x1(score::TS, x1::TI, n1::TI, n2::TI, c2::TR) where {TS<:Score,TI<:Integer,TR<:Real}
-    return score(x1, n1, n2, c2)*dbinom(x1, n1, score.prior)
+    return score(x1, n1, n2, c2) * pmf(x1, n1, score.prior)
 end
 
 

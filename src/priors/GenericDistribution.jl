@@ -58,7 +58,7 @@ end
 function update(prior::GenericDistribution{TR}, x::TI, n::TI)::GenericDistribution{TR} where
     {TR<:Real,TI<:Integer}
 
-    return GenericDistribution{TR}( p -> pdf(prior, p) * dbinom(x, n, p); low = prior.low, high = prior.high )
+    return GenericDistribution{TR}( p -> pdf(prior, p) * pmf(x, n, p); low = prior.low, high = prior.high )
 end
 
 function string(prior::GenericDistribution)
