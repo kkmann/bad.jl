@@ -4,6 +4,8 @@ struct PointMass{T<:Real} <: Prior
 end
 PointMass(atom::T) where{T<:Real} = PointMass{T}(atom)
 
+bounds(prior::PointMass) = [prior.atom, prior.atom]
+
 pdf(prior::PointMass{T}, p::T) where{T<:Real} = (p == prior.atom) ? Inf : 0
 
 cdf(prior::PointMass{T}, p::T) where{T<:Real} = (p >= prior.atom) ? 1 : 0
@@ -18,6 +20,6 @@ expectation(f::Function, prior::PointMass{T}) where {T<:Real} = f(prior.atom)
 
 mean(prior::PointMass{T}) where {T<:Real} = prior.atom
 
-string(prior::PointMass) = @sprintf "PointMass(atom=%.2f)" prior.atom
+string(prior::PointMass) = @sprintf "PointMass(%.2f)" prior.atom
 
 quantile(prior::PointMass, prob::Real) = prior.atom

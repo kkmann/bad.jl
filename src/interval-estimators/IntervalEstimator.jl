@@ -29,6 +29,32 @@ end
 
 
 
+function compatible(estimator::IntervalEstimator, design::AbstractDesign, pnull::Real)
+
+    @assert (0 <= pnull <= 1) "pnull must be in [0,1]"
+
+    XX                      = sample_space(design)
+    design_rejects          = reject.(XX[:,1], XX[:,2], design)
+    lower_boundaries        = get_bounds(estimator, XX[:,1], XX[:,2])[:,1]
+    iv_rejects              = lower_boundaries .> pnull
+    incompatibility_degree  = sum(design_rejects .& .!iv_rejects)
+
+    df = DataFrames.DataFrame(
+        x1 = XX[:,1],
+        x2 = XX[:,2],
+        design_rejects = design_rejects,
+        ci_reject = iv_rejects,
+        lower_boundaries = lower_boundaries
+    )
+
+    return Dict{String,Any}(
+        "compatible" => incompatibility_degree == 0,
+        "incompatibility degree" => incompatibility_degree,
+        "details" => df
+    )
+end
+
+
 function coverage_probability(estimator::IntervalEstimator, p::Real)
 
     XX    = estimator.XX

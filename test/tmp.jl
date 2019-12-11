@@ -1,13 +1,23 @@
 Pkg.activate("."); using Revise; using Test
 using bad
 
-p0, α     = .2, .05
-prior, β  = Beta(5, 7), .2
-design    = Problem(
-        minimise_expected_sample_size(prior),
-        maximal_type_one_error_rate(p0, α),
-        minimal_expected_power(prior, p0 + .1, 1 - β),
-    ) |> optimise
+pnull, pmcr, palt = .2, .25, .4
+α, β = .05, .2
+null = PointMass(pnull)
+mtoer = TypeOneErrorRate(null, pnull)
+prior1 = Beta(mean = .4, sd = .1)
+prior2 = .8*prior1 + .2*Beta(1, 1)
+prior3 = prior2 <= .6
+prior = update(prior3, 4, 10)
+
+power = Power(prior, pmcr)
+mean(prior), mean(power.prior)
+problem = Problem(
+    minimise(SampleSize(prior)),
+    subject_to(mtoer, α),
+    subject_to(power, β,)
+)
+design = optimise(problem)
 
 XX = sample_space(design)
 
@@ -64,18 +74,8 @@ function pdf_k_greater_n1(x1, x2, τ, x_n1_to_τ, design, prior)
     )
 end
 
-x1, x2 = , 13
-k, x_n1_to_k= n1(design) + 20, 1
-dn2 = n2(design, x1) - (k - n1(design))
-dx2 = x2 - x_n1_to_k
-p = .4
-binomial(dn2, dx2) * p^(dx2) * (1 - p)^(dn2 - dx2) *
-binomial(n1(design), x1) * p^x1 * (1 - p)^(n1(design) - x1)
-
-x1, x2 = XX[5,:]
-n1(design)
-n2(design, x1)
-pdf_k_less_n1.(XX[:,1], XX[:,2], n1(design), 2, design, PointMass(.4)) |> sum
+pdf_k_less_n1.(XX[:,1], XX[:,2], n1(design), 2, design, PointMass(.4)) |>
+    sum
 
 XX_x1 = sample_space(design, 3)
 
@@ -84,7 +84,3 @@ pdf_k_greater_n1.(XX[:,1], XX[:,2], n1(design) + 1, 0, design, PointMass(.4)) |>
 
 pdf_k_geq_n1.(XX[:,1], XX[:,2], n1(design) + 1, 0, design, PointMass(.4)) |>
     sum
-
-design
-
-bad.dbinom.(3:5, n1(design), .4) |> sum

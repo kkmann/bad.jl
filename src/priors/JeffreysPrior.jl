@@ -14,7 +14,7 @@ function JeffreysPrior(design::TD; low::Real = 0, high::Real = 1)::JeffreysPrior
     eps          = 1e-3
     low, high    = max(low, eps), min(high, 1 - eps)
     p, ω         = gauss_legendre_25(low, high)
-    z            = quadgk( p -> fisher_information(p, design), low, high )[1]
+    z            = quadgk( p -> fisher_information(p, design), low, high; atol = 1e-5 )[1]
     pdf_function = p -> ( (p < low) | (p > high) ) ? 0.0 : fisher_information(p, design) / z
     pdf          = pdf_function.(p)
     zz           = (high - low)/2 * sum(pdf .* ω)
@@ -39,7 +39,7 @@ end
 function cdf(p::TR, prior::JeffreysPrior{TR,TD})::TR where
     {TR<:Real,TD<:AbstractDesign}
 
-    return min(1.0, max(0.0, quadgk(prior.pdf_function, 0, p)[1]))
+    return min(1.0, max(0.0, quadgk(prior.pdf_function, 0, p; atol = 1e-5)[1]))
 end
 
 function expectation(f::Function, prior::JeffreysPrior{TR,TD})::TR where

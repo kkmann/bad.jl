@@ -12,7 +12,7 @@ function GenericDistribution(f::Function; low::Real = 0, high::Real = 1)::Generi
     eps          = 1e-3
     low, high    = max(low, eps), min(high, 1 - eps)
     p, ω         = gauss_legendre_25(low, high)
-    z            = quadgk( p -> f(p), low, high )[1]
+    z            = quadgk( p -> f(p), low, high; atol = 1e-5 )[1]
     pdf_function = p -> ( (p < low) | (p > high) ) ? 0.0 : f(p) / z
     pdf          = pdf_function.(p)
     zz           = (high - low)/2 * sum(pdf .* ω)
@@ -34,7 +34,7 @@ end
 
 function cdf(p::TR, prior::GenericDistribution{TR})::TR where {TR<:Real}
 
-    return max(0.0, min(1.0, quadgk(prior.pdf_function, 0, p)[1]))
+    return max(0.0, min(1.0, quadgk(prior.pdf_function, 0, p; atol = 1e-5)[1]))
 end
 
 function expectation(f::Function, prior::GenericDistribution{TR})::TR where

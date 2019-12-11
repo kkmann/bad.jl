@@ -5,30 +5,35 @@ end
 
 function (objective::MiniMaxSampleSize)(design::AbstractDesign)
 
-    return maximum(n(design)) + λ*expectation(p -> expected_sample_size(desing, p), objective.prior)
+    ess = SampleSize(objective.prior)
+    return (1 - objective.λ)*maximum(n(design)) + λ*ess(design)
 end
 
-update!(objective::MiniMaxSampleSize, prior::Prior) = nothing
+function add!(
+        JuMP_model_and_indicator_variables::Tuple,
+        objective::MiniMaxSampleSize,
+        problem::Problem
+    )
 
-function add!(jump_model, ind, objective::MiniMaxSampleSize, problem::Problem)
-    @variable(jump_model, nmax >= 0)
-    for n1 in n1vals(problem)
-        for x1 in 0:n1
-            @constraint(jump_model, nmax >= sum(
-                (n1 + n2) * ind[n1, x1, n2, c2] for
-                    n2 in n2vals(n1, x1, problem),
-                    c2 in c2vals(n1, x1, n2, problem)
+    m, ind = JuMP_model_and_indicator_variables
+    prior  = objective.prior
+
+    @variable(m, nmax)
+    for n1_ in problem.n1values
+        for x1_ in x1(problem, n1_)
+            @constraint(m, nmax >= sum(
+                (n1_ + n2) * ind[(n1_, x1_, n2, c2)]
+                    for (x1, n2, c2) in grid(problem, n1_)
+                    if  (x1 == x1_)
                 )
             )
         end
     end
-    @objective(jump_model, Min,
-        (1 - objective.λ)*nmax + objective.λ*sum(
-            (n1 + n2) * dbinom(x1, n1, objective.prior) * ind[n1, x1, n2, c2] for
-                n1 in n1vals(problem),
-                x1 in x1vals(n1, problem),
-                n2 in n2vals(n1, x1, problem),
-                c2 in c2vals(n1, x1, n2, problem)
+    @objective(m, Min,
+        (1 - objective.λ)*nmax +
+        objective.λ*sum(
+            (n1 + n2) * dbinom(x1, n1, objective.prior) * ind[(n1, x1, n2, c2)]
+                for (n1, x1, n2, c2) in grid(problem)
         )
     )
 end

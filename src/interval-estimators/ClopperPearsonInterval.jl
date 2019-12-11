@@ -39,12 +39,3 @@ function ClopperPearsonInterval(estimator::Estimator, design::AbstractDesign, α
 
     return ClopperPearsonInterval(EstimatorOrdering(estimator), design, α; ϵ = ϵ)
 end
-
-function compatible(ci::IntervalEstimator, design::AbstractDesign, p0::Real)
-
-    XX     = sample_space(design)
-    reject = reject_null.(XX[:,1], XX[:,2], design)
-    reject_ci_covers        = findall((ci.bounds[:,1] .<= p0) .& reject)
-    not_reject_ci_not_cover = findall((ci.bounds[:,1] .> p0) .& .!reject)
-    return length(reject_ci_covers) + length(not_reject_ci_not_cover) == 0
-end

@@ -25,11 +25,6 @@ function pbeta(p::Real, a::Real, b::Real)
     return beta_inc(a, b, p, 1 - p)[1]
 end
 
-abstract type EarlyStopping end
-# make iterable:
-Base.iterate(design::EarlyStopping, state = 0) = state > 0 ? nothing : (design, state + 1)
-Base.length(design::EarlyStopping) = 1
-
 gauss_legendre = function(low, high, order::Integer)
     pivots, weights = gauss(order)
     a, b = (high - low)/2, (high + low)/2
@@ -46,14 +41,6 @@ gauss_legendre_25 = function(low, high)
     scaled_pivots  = a .* pivots .+ b
     scaled_weights = a .* weights
     return(scaled_pivots, scaled_weights)
-end
-
-
-function guess_nmax(p0::Real, α::Real, p1::Real, β::Real; multiple = 2)
-    z_1_α   = Distributions.quantile(Distributions.Normal(), 1 - α)
-    z_1_β   = Distributions.quantile(Distributions.Normal(), 1 - β)
-    napprox = p1*(1 - p1)*( (z_1_α + z_1_β) / (p1 - p0) )^2
-    return Int(ceil(multiple * napprox))
 end
 
 function one_stage_sample_size(p0::Real, α::Real, p1::Real, β::Real)

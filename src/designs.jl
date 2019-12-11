@@ -27,10 +27,13 @@ n(design::AbstractDesign, x1::Int)     = n1(design) + n2(design, x1)
 n(design::AbstractDesign)              = n1(design) .+ design.n2
 
 early_futility(design::AbstractDesign) = any(design.c2 .== Inf) ? findlast(design.c2 .== Inf) - 1 : -Inf
+futility_region(design::AbstractDesign) = collect(0:n1(design))[(n2.(design, 0:n1(design)) .== 0) .& (c2.(design, 0:n1(design)) .== Inf)]
 early_efficacy(design::AbstractDesign) = any(design.c2 .== -Inf) ? findfirst(design.c2 .== -Inf) - 1 : Inf
-c2(design::AbstractDesign, x1::Int)    = valid(design, x1) ? design.c2[x1 + 1] : error("0 <= x1 <= n1 violated")
+efficacy_region(design::AbstractDesign) = collect(0:n1(design))[(n2.(design, 0:n1(design)) .== 0) .& (c2.(design, 0:n1(design)) .== -Inf)]
+continuation_region(design::AbstractDesign) = collect(0:n1(design))[n2.(design, 0:n1(design)) .> 0]
+early_stop_region(design::AbstractDesign) = vcat(futility_region(design), efficacy_region(design))
 
-expected_sample_size(design::AbstractDesign, p::Real) = sum(dbinom.(0:n1(design), n1(design), p) .* design.n2) + n1(design)
+c2(design::AbstractDesign, x1::Int)    = valid(design, x1) ? design.c2[x1 + 1] : error("0 <= x1 <= n1 violated")
 
 function pdf(x1::TI, x2::TI, design::TD, p::TR) where {TI<:Integer,TR<:Real,TD<:AbstractDesign}
 
@@ -73,11 +76,11 @@ function sample_space(design::TD, x1::TI) where {TI<:Integer,TD<:AbstractDesign}
     return collect(0:n2(design, x1))
 end
 
-reject_null(x2::Int, c2::Real) = x2 > c2
+reject(x2::Int, c2::Real) = x2 > c2
 
-function reject_null(x1::Int, x2::Int, design::AbstractDesign)
+function reject(x1::Int, x2::Int, design::AbstractDesign)
     !valid(design, x1, x2) ? error("invalid x1 / x2 for given design") : nothing
-    return reject_null(x2, c2(design, x1))
+    return reject(x2, c2(design, x1))
 end
 
 valid(design::AbstractDesign, x1::Int) = 0 <= x1 <= n1(design)

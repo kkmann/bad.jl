@@ -15,12 +15,13 @@ function (estimator::CompatibleMLE)(x1::TI, x2::TI, design::TD) where {TI<:Integ
     error("(x1,x2) not found in sample space, valid observation?")
 end
 
-function CompatibleMLE(design::TD; λ = .5, ϵ = 1e-4, smoothmax_scale = 100., max_iter = 10^4) where {TD<:AbstractDesign}
+function CompatibleMLE(design::TD; verbosity = 0,  λ = .5, ϵ = 1e-4, smoothmax_scale = 10., max_iter = 10^4) where {TD<:AbstractDesign}
 
+    @assert (0 <= verbosity <= 5) "Ipopt takes levels between 0 and 5"
     XX = sample_space(design)
     # precompute test decisions and get indices for rejection/non-rejection
     # regions into XX
-    decisions       = reject_null.(XX[:, 1], XX[:, 2], design)
+    decisions       = reject.(XX[:, 1], XX[:, 2], design)
     inds_reject     = findall(decisions .== 1)
     inds_not_reject = findall(decisions .== 0)
     # precompute mles
@@ -41,8 +42,9 @@ function CompatibleMLE(design::TD; λ = .5, ϵ = 1e-4, smoothmax_scale = 100., m
     m = Model(
         with_optimizer(Ipopt.Optimizer,
             max_iter                         = max_iter,
-            constr_viol_tol                  = ϵ/10,
-            acceptable_constr_viol_tol       = ϵ/10
+            constr_viol_tol                  = ϵ/100,
+            acceptable_constr_viol_tol       = ϵ/100,
+            print_level                      = verbosity
         )
     )
     # define all variables upfront, start with estimates
