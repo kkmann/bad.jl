@@ -38,7 +38,7 @@ evaluate(score::TS, design::TD, x1::TI, x2::TI) where {TI<:Integer,TD<:AbstractD
 function evaluate(score::TS, x1::TI, n1::TI, n2::TI, c2::TR, p::TR) where {TI<:Integer,TR<:Real,TS<:Score}
 
     X2 = collect(0:n2)
-    return sum( evaluate.(score, x1, n1, X2, n2, c2, p) .* pmf_x2_given_x1.(X2, n2, p) )
+    return sum( evaluate.(score, x1, n1, X2, n2, c2, p) .* pmf.(X2, n2, p) )
 end
 evaluate(score::TS, x1::TI, n1::TI, n2::TI, c2::TR) where {TI<:Integer,TR<:Real,TS<:Score} = expectation(p -> evaluate(score, x1, n1, n2, c2, p), update(score.prior, x1, n1) )
 

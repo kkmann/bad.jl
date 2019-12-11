@@ -78,9 +78,3 @@ end
 function pmf(x1::TI, x2::TI, design::TD, p::Union{TR,TP}; x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TR<:Real,TP<:bad.Prior,TD<:bad.AbstractDesign}
     pmf(x1, n1(design), x2, n2(design, x1), p; x1partial = x1partial, n1partial = n1partial)
 end
-
-
-# conditional
-function pmf_x2_given_x1(x2::TI, n2::TI, p::TR) where {TI<:Integer,TR<:Real,TD<:AbstractDesign}
-    return dbinom(x2, n2, p)
-end
