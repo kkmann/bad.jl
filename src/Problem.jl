@@ -46,13 +46,13 @@ struct Problem
             n2min = max(n2mincontinueabs, Int(ceil(n1*n2mincontinuereln1)) - n1)
             n2max = min(nmax - n1, Int(floor(n1*(n2maxcontinuereln1))) - n1)
             if x1 > 0 # compute stage one toer for rejecting at x1
-                toer1 = 1 - pbinom(x1 - 1, n1, toer.score.prior)
+                toer1 = 1 - cdf(x1 - 1, n1, toer.score.prior)
                 if (toer1 <= curtail_stage_one_fct*toer.α)
                     return [0]
                 end
             end
             if x1 < n1 # compute stage one tter for rejecting at x1
-                tter1 = pbinom(x1 + 1, n1, power.score.prior)
+                tter1 = cdf(x1 + 1, n1, power.score.prior)
                 if (tter1 <= curtail_stage_one_fct*power.β)
                     return [0]
                 end
@@ -69,16 +69,16 @@ struct Problem
             candidates = collect(0:(n2 - 1))
             # filter Pr[X1 == x1] * toer[x1] > alpha
             prior      = toer.score.prior
-            candidates = candidates[ dbinom(x1, n1, prior) .* (1 .- pbinom.(candidates, n2, prior)) .<= toer.α ]
+            candidates = candidates[ pmf(x1, n1, prior) .* (1 .- cdf.(candidates, n2, prior)) .<= toer.α ]
             # filter Pr[X1 == x1] * tter[x1]) > beta
             prior      = power.score.prior
-            candidates = candidates[ dbinom(x1, n1, prior) .* pbinom.(candidates, n2, prior) .<= power.β ]
+            candidates = candidates[ pmf(x1, n1, prior) .* cdf.(candidates, n2, prior) .<= power.β ]
             # check conditional power and type one error rate
             valid = trues(length(candidates))
             for i in 1:length(candidates)
                 for cnstr in (power, toer)
                     min, max = cnstr.conditional
-                    valid[i] = !(min <= (1 - pbinom(candidates[i], n2, cnstr.score.prior)) <= max) ? false : valid[i]
+                    valid[i] = !(min <= (1 - cdf(candidates[i], n2, cnstr.score.prior)) <= max) ? false : valid[i]
                 end
             end
             return vcat([-Inf], candidates[valid], [Inf]) # required to be safe!

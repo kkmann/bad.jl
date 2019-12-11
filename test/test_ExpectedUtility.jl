@@ -41,7 +41,7 @@ problem = Problem(
     subject_to(power, β)
 )
 
-design = optimise(problem; verbosity = 0)
+@time design = optimise(problem; verbosity = 3)
 power(design), mtoer(design), ess(design), utility(design)
 plot(design)
 

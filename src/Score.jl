@@ -54,7 +54,7 @@ evaluate(score::TS, design::TD, x1::TI) where {TI<:Integer,TD<:AbstractDesign,TS
 function evaluate(score::TS, design::TD, p::TR) where {TI<:Integer,TR<:Real,TD<:AbstractDesign,TS<:Score}
 
     XX = sample_space(design)
-    return sum( evaluate.(score, design, XX[:,1], XX[:,2], p) .* pdf.(XX[:,1], XX[:,2], design, p) )
+    return sum( evaluate.(score, design, XX[:,1], XX[:,2], p) .* pmf.(XX[:,1], XX[:,2], design, p) )
 end
 evaluate(score::TS, design::TD) where {TI<:Integer,TD<:AbstractDesign,TS<:Score} = expectation(p -> evaluate(score, design, p), score.prior)
 
@@ -98,7 +98,11 @@ end
 # since we integrate power, it is easier to do that in one wash, also
 # closed form cdf is available, note that the score prior is already properly conditioned
 function integrand_x1(score::Power, x1::TI, n1::TI, n2::TI, c2::TR) where {TS<:Score,TI<:Integer,TR<:Real}
-    return expectation( p-> (1 - pbinom(c2, n2, p))*dbinom(x1, n1, p), score.prior)
+
+    return expectation(
+        p -> (1 - cdf(c2, n2, p)) * pmf(x1, n1, p),
+        score.prior
+    )
 end
 
 
@@ -120,7 +124,10 @@ end
 # since we integrate power, it is easier to do that in one wash, also
 # closed form cdf is available, note that the score prior is already properly conditioned
 function integrand_x1(score::TypeOneErrorRate, x1::TI, n1::TI, n2::TI, c2::TR) where {TS<:Score,TI<:Integer,TR<:Real}
-    return expectation( p-> (1 - pbinom(c2, n2, p))*dbinom(x1, n1, p), score.prior)
+    return expectation(
+        p -> (1 - cdf(c2, n2, p)) * pmf(x1, n1, p),
+        score.prior
+    )
 end
 
 

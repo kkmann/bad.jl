@@ -31,17 +31,17 @@ end
 
 
 
-function cdf(x::TR, n::TI, p::TR; xpartial::TI = 0, npartial::TI = 0) where {TI<:Integer,TR<:Real}
+function cdf(x::TR1, n::TI, p::TR2; xpartial::TI = 0, npartial::TI = 0) where {TI<:Integer,TR1,TR2<:Real}
 
-    if x < 0: return 0.0 end
-    if x > n: return 1.0 end
+    if x < 0; return 0.0 end
+    if x > n; return 1.0 end
     if !(0 <= xpartial <= npartial <= n)
         throw(DomainError((xpartial, npartial), @sprintf "0 <= xpartial=%i <= npartial=%i <= n=%i violated" x1partial n1partial n))
     end
     deltax = x - xpartial
     deltan = n - npartial
     if deltax < 0; return 0.0 end # is x < xpartial, so is x-1 .. 0
-    if deltax > deltan return 1.0 end
+    if deltax > deltan; return 1.0 end
     return beta_inc(deltan - deltax, deltax + 1, 1 - p, p)[1]
 end
 
@@ -52,11 +52,11 @@ function cdf(x::TR, n::TI, p::TP; xpartial::TI = 0, npartial::TI = 0) where {TI<
     )
 end
 
-function cdf_x1(x1::TR, design::TD, p::Union{TR,TP}; x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TR<:Real,TP<:bad.Prior,TD<:bad.AbstractDesign}
+function cdf_x1(x1::TR1, design::TD, p::Union{TR2,TP}; x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TR1,TR2<:Real,TP<:bad.Prior,TD<:bad.AbstractDesign}
     cdf(x1, n1(design), p; xpartial = x1partial, npartial = n1partial)
 end
 
-function cdf_x2_given_x1(x2::TR, x1::TI, design::TD, p::Union{TR,TP}) where {TI<:Integer,TR<:Real,TP<:bad.Prior,TD<:bad.AbstractDesign}
+function cdf_x2_given_x1(x2::TR1, x1::TI, design::TD, p::Union{TR2,TP}) where {TI<:Integer,TR1,TR2<:Real,TP<:bad.Prior,TD<:bad.AbstractDesign}
     cdf(x2, n2(design, x1), p)
 end
 
