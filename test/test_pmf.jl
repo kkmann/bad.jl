@@ -1,31 +1,54 @@
-using Test, bad; import Plots
+using Test, bad
+
+import Plots
 
 
-pnull = .2
-pmcr  = 0.3
-palt  = .4
-p     = Beta(1, 1)
-α, β  = .05, .2
-problem = Problem(
-    minimise(SampleSize(p | palt)),
-    subject_to(TypeOneErrorRate(p | pnull), α),
-    subject_to(Power(p | palt), β)
-)
-design = optimise(problem; verbosity = 0)
+p = Beta(5, 7)
 
-XX = sample_space(design)
+# check that marginal distribution (of x1) sums to 1
+for xpartial in 0:10, npartial in xpartial:10
+    pmff = pmf.(0:10, 10, p; xpartial = xpartial, npartial = npartial)
+    @test sum(pmff) ≈ 1.0
+    @test cumsum(pmff) ≈ cdf.(0:10, 10, p; xpartial = xpartial, npartial = npartial)
+end
 
-@test 1 ≈ pmf.(design, XX[:,1], XX[:,2], pmcr) |> sum
-@test 1 ≈ pmf.(design, XX[:,1], XX[:,2], p) |> sum
 
-X1 = 0:n1(design)
-@test 1 ≈ pmf.(design, X1, pmcr) |> sum
-@test 1 ≈ pmf.(design, X1, p) |> sum
 
-for x1 in X1
-    X2 = sample_space(design, x1)
-    @test 1 ≈ pmf_x2_given_x1.(design, x1, X2, pmcr) |> sum
-    @test 1 ≈ pmf_x2_given_x1.(design, x1, X2, p) |> sum
+function simon(r1::Int, n1::Int, r::Int, n::Int)
+    nn2 = zeros(Int, n1 + 1)
+    nn2[(r1 + 2):end] .= n - n1
+    cc = repeat([Inf], n1 + 1)
+    cc[(r1 + 2):end] .= r
+    cc2 = cc .- collect(0:n1)
+    cc2[cc2 .< 0]     .= -Inf
+    cc2[cc2 .>= nn2]  .= Inf
+    nn2[cc2 .== -Inf] .= 0
+    Design(nn2, cc2)
+end
+
+design = simon(4, 18, 10, 33)
+XX     = sample_space(design)
+x1, x2 = XX[:,1], XX[:,2]
+
+
+
+# check that joint distribution sums to for all possible partial x1 observations
+for x1partial in 0:n1(design)
+    @test 1.0 ≈ pmf.(x1, x2, design, p; x1partial = x1partial, n1partial = n1(design)) |> sum
+end
+
+# check that marginal distribution (of x1) sums to 1
+for x1partial in 0:n1(design), n1partial in x1partial:n1(design)
+    pmff = pmf_x1.(0:n1(design), design, p; x1partial = x1partial, n1partial = n1partial)
+    @test sum(pmff) ≈ 1.0
+    @test cumsum(pmff) ≈ cdf_x1.(0:n1(design), design, p; x1partial = x1partial, n1partial = n1partial)
+end
+
+# check that conditional distribution (of x2 given x2) sums to 1
+for x1 in 0:n1(design), x1partial in 0:n1(design), n1partial in x1partial:n1(design)
+    pmff = pmf_x2_given_x1.(0:n2(design, x1), x1, design, p)
+    @test sum(pmff) ≈ 1.0
+    @test all( cumsum(pmff) .≈ cdf_x2_given_x1.(0:n2(design, x1), x1, design, p))
 end
 
 @test true

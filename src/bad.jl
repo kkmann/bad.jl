@@ -53,7 +53,7 @@ export PointMass
 
 
 include("pmf.jl")
-export pmf, pmf_x2_given_x1
+export pmf, pmf_x1, pmf_x2_given_x1, cdf, cdf_x1, cdf_x2_given_x1
 
 
 

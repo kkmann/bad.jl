@@ -84,3 +84,53 @@ pdf_k_greater_n1.(XX[:,1], XX[:,2], n1(design) + 1, 0, design, PointMass(.4)) |>
 
 pdf_k_geq_n1.(XX[:,1], XX[:,2], n1(design) + 1, 0, design, PointMass(.4)) |>
     sum
+
+
+
+
+
+
+
+
+
+function f(x1::TI, n1::TI, p::TR; x2::TI = 0, n2::TI = 0, x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TR<:Real}
+    if !(0 <= x1partial <= n1partial)
+        throw(DomainError((x1partial, n1partial), @sprintf "0 <= x1partial=%i <= n1partial=%i violated" x1partial n1partial))
+    end
+    if !(x1partial <= x1 <= n1)
+        throw(DomainError((x1partial, x1, n1), @sprintf "0 <= x1partial=%i <= x1=%i <= n1=%i violated" x1partial x1 n1))
+    end
+    if !(0 <= x2 <= n2)
+        throw(DomainError((x1partial, x1, n1), @sprintf "0 <= x2=%i <= n2=%i violated" x2 n2))
+    end
+    return gamma(n2 + 1)/gamma(x2 + 1)/gamma(n2 - x2 + 1) *
+        gamma(n1 - n1partial + 1)/gamma(x1 - x1partial + 1)/gamma(n1 - n1partial - x1 + x1partial + 1) *
+        p^(x1 + x2 - x1partial)*(1 - p)^(n1 + n2 - n1partial - x1 - x2 + x1partial)
+end
+
+function f(x1::TI, n1::TI, p::TP; x2::TI = 0, n2::TI = 0, x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TP<:bad.Prior}
+    expectation(p -> f(x1, n1, p, x2 = x2, n2 = n2, x1partial = x1partial, n1partial = n1partial), p)
+end
+
+function f(x1::TI, design::TD, p::Union{TR,TP}; x2::TI = 0, x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TR<:Real,TP<:bad.Prior,TD<:bad.AbstractDesign}
+    f(x1, n1(design), p, x2 = x2, n2 = n2(design, x1), x1partial = x1partial, n1partial = n1partial)
+end
+
+import Printf.@sprintf
+
+
+pnull = .3
+pmcr  = .4
+p     = Beta(6, 5)
+α, β  = .05, .2
+
+problem = Problem(
+    minimise(SampleSize(p)),
+    subject_to(TypeOneErrorRate(p | pnull), α),
+    subject_to(Power(p >= pmcr), β)
+)
+design = optimise(problem; verbosity = 0)
+
+as_table(design)
+
+@time f(30, 50, .2, x1partial = 5, n1partial = 4)
