@@ -1,17 +1,17 @@
-function dbinom(x::TI, n::TI, p::TR) where {TI<:Integer,TR<:Real}
-    return (0 <= x <= n) ? gamma(n + 1)/gamma(x + 1)/gamma(n - x + 1)*(1 - p)^(n - x)*p^x : 0.0
-end
-function dbinom(x::TI, n::TI, prior::TP) where {TI<:Integer,TP<:Prior}
-    expectation(p -> dbinom(x, n, p), prior)
-end
-
-function pbinom(x::Real, n::Real, p::Real)
-    n < 0  ? (return NaN) : nothing
-    x < 0  ? (return 0.0) : nothing
-    x >= n ? (return 1.0) : nothing
-    return beta_inc(n - x, x + 1, 1 - p, p)[1]
-end
-pbinom(x::Real, n::Real, p::Prior) = expectation(p -> pbinom(x, n, p), p)
+# function dbinom(x::TI, n::TI, p::TR) where {TI<:Integer,TR<:Real}
+#     return (0 <= x <= n) ? gamma(n + 1)/gamma(x + 1)/gamma(n - x + 1)*(1 - p)^(n - x)*p^x : 0.0
+# end
+# function dbinom(x::TI, n::TI, prior::TP) where {TI<:Integer,TP<:Prior}
+#     expectation(p -> dbinom(x, n, p), prior)
+# end
+#
+# function pbinom(x::Real, n::Real, p::Real)
+#     n < 0  ? (return NaN) : nothing
+#     x < 0  ? (return 0.0) : nothing
+#     x >= n ? (return 1.0) : nothing
+#     return beta_inc(n - x, x + 1, 1 - p, p)[1]
+# end
+# pbinom(x::Real, n::Real, p::Prior) = expectation(p -> pbinom(x, n, p), p)
 
 function dbeta(p::Real, a::Real, b::Real)
     any((a, b) .<= 0) ? (return NaN) : nothing
