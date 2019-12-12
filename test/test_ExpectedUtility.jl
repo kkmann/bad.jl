@@ -31,8 +31,6 @@ var"cost failed phase III" = 12000.
 var"risk weighted profit of successful phaseIII" = 100.
 utility = -var"cost failed phase III"*potoe + var"risk weighted profit of successful phaseIII"*pos - ess
 
-utility.ω
-
 # first consider the 'standard design'
 α, β = .05, .2
 problem = Problem(
@@ -41,7 +39,7 @@ problem = Problem(
     subject_to(power, β)
 )
 
-@time design = optimise(problem; verbosity = 3)
+design = optimise(problem; verbosity = 0)
 power(design), mtoer(design), ess(design), utility(design)
 plot(design)
 

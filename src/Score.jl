@@ -12,7 +12,7 @@ Base.show(io::IO, ::MIME"application/prs.juno.inline", score::Score) = print(io,
 Base.string(score::Score) = @sprintf "ToDo: implement Base.string for %s" typeof(score)
 
 # make scores callable
-(score::Score)(args...) = evaluate(score, args...)
+(score::Score)(args...; kwargs...) = evaluate(score, args...; kwargs...)
 
 
 
@@ -20,50 +20,78 @@ Base.string(score::Score) = @sprintf "ToDo: implement Base.string for %s" typeof
 update!(score::TS, x::TI, n::TI) where {TS<:Score,TI<:Integer} = score.prior = update(score.prior, x, n)
 
 
+
 function evaluate(score::TS, x1::TI, n1::TI, x2::TI, n2::TI, c2::TR, p::TR)::TR where {TI<:Integer,TR<:Real,TS<:Score}
 
     error(@sprintf "ToDo: implement bad.evaluate for %s" typeof(score))
 end
-evaluate(score::TS, x1::TI, n1::TI, x2::TI, n2::TI, c2::TR) where {TI<:Integer,TR<:Real,TS<:Score} = expectation(p -> evaluate(score, x1, n1, x2, n2, c2, p), score.prior)
+function evaluate(score::TS, x1::TI, n1::TI, x2::TI, n2::TI, c2::TR) where {TI<:Integer,TR<:Real,TS<:Score}
+    expectation(
+        p -> evaluate(score, x1, n1, x2, n2, c2, p),
+        update(score.prior, x1 + x2, n1 + n2)
+    )
+end
 
 function evaluate(score::TS, design::TD, x1::TI, x2::TI, p::TR) where {TI<:Integer,TR<:Real,TD<:AbstractDesign,TS<:Score}
 
     evaluate(score, x1, n1(design), x2, n2(design, x1), c2(design, x1), p)
 end
-evaluate(score::TS, design::TD, x1::TI, x2::TI) where {TI<:Integer,TD<:AbstractDesign,TS<:Score} = expectation(p -> evaluate(score, design, x1, x2, p), score.prior)
+function evaluate(score::TS, design::TD, x1::TI, x2::TI) where {TI<:Integer,TD<:AbstractDesign,TS<:Score}
+    expectation(
+        p -> evaluate(score, design, x1, x2, p),
+        update(score.prior, x1 + x2, n1(design) + n2(design, x1))
+    )
+end
 
 
 
-# conditonal expectation value given x1
+# conditonal expectation given x1
 function evaluate(score::TS, x1::TI, n1::TI, n2::TI, c2::TR, p::TR) where {TI<:Integer,TR<:Real,TS<:Score}
 
     X2 = collect(0:n2)
     return sum( evaluate.(score, x1, n1, X2, n2, c2, p) .* pmf.(X2, n2, p) )
 end
-evaluate(score::TS, x1::TI, n1::TI, n2::TI, c2::TR) where {TI<:Integer,TR<:Real,TS<:Score} = expectation(p -> evaluate(score, x1, n1, n2, c2, p), update(score.prior, x1, n1) )
+function evaluate(score::TS, x1::TI, n1::TI, n2::TI, c2::TR) where {TI<:Integer,TR<:Real,TS<:Score}
+    expectation(
+        p -> evaluate(score, x1, n1, n2, c2, p),
+        update(score.prior, x1, n1)
+    )
+end
 
 function evaluate(score::TS, design::TD, x1::TI, p::TR) where {TI<:Integer,TR<:Real,TD<:AbstractDesign,TS<:Score}
 
     return evaluate(score, x1, n1(design), n2(design, x1), c2(design, x1), p)
 end
-evaluate(score::TS, design::TD, x1::TI) where {TI<:Integer,TD<:AbstractDesign,TS<:Score} = expectation(p -> evaluate(score, design, x1, p), update(score.prior, x1, n1(design)) )
-
+function evaluate(score::TS, design::TD, x1::TI) where {TI<:Integer,TD<:AbstractDesign,TS<:Score}
+    expectation(
+        p -> evaluate(score, design, x1, p),
+        update(score.prior, x1, n1(design))
+    )
+end
 
 
 # marginalise X1, X2
-function evaluate(score::TS, design::TD, p::TR) where {TI<:Integer,TR<:Real,TD<:AbstractDesign,TS<:Score}
+function evaluate(score::TS, design::TD, p::TR; x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TR<:Real,TD<:AbstractDesign,TS<:Score}
+
+    @assert 0 <= x1partial <= n1partial <= n1(design)
 
     XX = sample_space(design)
-    return sum( evaluate.(score, design, XX[:,1], XX[:,2], p) .* pmf.(XX[:,1], XX[:,2], design, p) )
+    return sum( evaluate.(score, design, XX[:,1], XX[:,2], p) .* pmf.(XX[:,1], XX[:,2], design, p; x1partial = x1partial, n1partial = n1partial) )
 end
-evaluate(score::TS, design::TD) where {TI<:Integer,TD<:AbstractDesign,TS<:Score} = expectation(p -> evaluate(score, design, p), score.prior)
+function evaluate(score::TS, design::TD; x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TD<:AbstractDesign,TS<:Score}
+
+    expectation(
+        p -> evaluate(score, design, p; x1partial = x1partial, n1partial = n1partial),
+        update(score.prior, x1partial, n1partial)
+    )
+end
 
 
 # compute Pr[X1=x1]*E_prior[s(x1, n1, X2, n2(x1), c2(x1))] = score_integrand(x1, n1, n2, c2)
 # this is the only thing that actually used during optmisation
-# feel free to implemnt specific, more efficient versions for each score!
-function integrand_x1(score::TS, x1::TI, n1::TI, n2::TI, c2::TR) where {TS<:Score,TI<:Integer,TR<:Real}
-    return score(x1, n1, n2, c2) * pmf(x1, n1, score.prior)
+# feel free to implement specific, more efficient versions for each score!
+function integrand_x1(score::TS, x1::TI, n1::TI, n2::TI, c2::TR; x1partial::TI = 0, n1partial::TI = 0) where {TS<:Score,TI<:Integer,TR<:Real}
+    score(x1, n1, n2, c2) * pmf(x1, n1, score.prior; xpartial = x1partial, npartial = n1partial)
 end
 
 
@@ -77,7 +105,7 @@ Base.string(score::SampleSize) = @sprintf "SampleSize<%s>" string(score.prior)
 function evaluate(score::SampleSize, x1::TI, n1::TI, x2::TI, n2::TI, c2::TR, p::TR)::TR where {TI<:Integer,TR<:Real,TD<:AbstractDesign}
     n1 + n2
 end
-# no custom score_integran necessary - fallback to default
+# no custom score_integrand necessary - fallback to default
 
 
 
@@ -97,11 +125,13 @@ end
 
 # since we integrate power, it is easier to do that in one wash, also
 # closed form cdf is available, note that the score prior is already properly conditioned
-function integrand_x1(score::Power, x1::TI, n1::TI, n2::TI, c2::TR) where {TS<:Score,TI<:Integer,TR<:Real}
+function integrand_x1(score::Power, x1::TI, n1::TI, n2::TI, c2::TR; x1partial::TI = 0, n1partial::TI = 0) where {TS<:Score,TI<:Integer,TR<:Real}
 
-    return expectation(
-        p -> (1 - cdf(c2, n2, p)) * pmf(x1, n1, p),
-        score.prior
+    expectation( # conditional expected power
+        p -> 1 - cdf(c2, n2, p),
+        update(score.prior, x1, n1)
+    ) * pmf( # conditional pmf given partial observations
+        x1, n1, score.prior; xpartial = x1partial, npartial = n1partial
     )
 end
 
@@ -123,10 +153,13 @@ end
 
 # since we integrate power, it is easier to do that in one wash, also
 # closed form cdf is available, note that the score prior is already properly conditioned
-function integrand_x1(score::TypeOneErrorRate, x1::TI, n1::TI, n2::TI, c2::TR) where {TS<:Score,TI<:Integer,TR<:Real}
-    return expectation(
-        p -> (1 - cdf(c2, n2, p)) * pmf(x1, n1, p),
-        score.prior
+function integrand_x1(score::TypeOneErrorRate, x1::TI, n1::TI, n2::TI, c2::TR; x1partial::TI = 0, n1partial::TI = 0) where {TS<:Score,TI<:Integer,TR<:Real}
+
+    expectation( # conditional expected power
+        p -> 1 - cdf(c2, n2, p),
+        update(score.prior, x1, n1)
+    ) * pmf( # conditional pmf given partial observations
+        x1, n1, score.prior; xpartial = x1partial, npartial = n1partial
     )
 end
 
@@ -168,9 +201,9 @@ evaluate(score::CompositeScore, x1::TI, n1::TI, n2::TI, c2::TR, p::TR) where {TI
 evaluate(score::CompositeScore, x1::TI, n1::TI, n2::TI, c2::TR) where {TI<:Integer,TR<:Real} = sum( score.ω .* evaluate.(score.components, x1, n1, n2, c2) )
 evaluate(score::CompositeScore, design::TD, x1::TI, p::TR) where {TI<:Integer,TR<:Real,TD<:AbstractDesign} = sum( score.ω .* evaluate.(score.components, design, x1, p) )
 evaluate(score::CompositeScore, design::TD, x1::TI) where {TI<:Integer,TD<:AbstractDesign} = sum( score.ω .* evaluate.(score.components, design, x1) )
-evaluate(score::CompositeScore, design::TD, p::TR) where {TR<:Real,TD<:AbstractDesign} = sum( score.ω .* evaluate.(score.components, design, p) )
-evaluate(score::CompositeScore, design::TD) where {TD<:AbstractDesign} = sum( score.ω .* evaluate.(score.components, design) )
+evaluate(score::CompositeScore, design::TD, p::TR; x1partial::TI = 0, n1partial::TI = 0) where {TR<:Real,TI<:Integer,TD<:AbstractDesign} = sum( score.ω .* evaluate.(score.components, design, p; xpartial = x1partial, npartial = n1partial) )
+evaluate(score::CompositeScore, design::TD; x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TD<:AbstractDesign} = sum( score.ω .* evaluate.(score.components, design; x1partial = x1partial, n1partial = n1partial) )
 
-function integrand_x1(score::CompositeScore, x1::TI, n1::TI, n2::TI, c2::TR) where {TS<:Score,TI<:Integer,TR<:Real}
-    return sum( score.ω .* integrand_x1.(score.components, x1, n1, n2, c2) )
+function integrand_x1(score::CompositeScore, x1::TI, n1::TI, n2::TI, c2::TR; x1partial::TI = 0, n1partial::TI = 0) where {TS<:Score,TI<:Integer,TR<:Real}
+    return sum( score.ω .* integrand_x1.(score.components, x1, n1, n2, c2; x1partial = x1partial, n1partial = x1partial) )
 end

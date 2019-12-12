@@ -105,6 +105,9 @@ export update!,
 include("Problem.jl")
 export Problem, optimise
 
+include("AdaptationProblem.jl")
+export AdaptationProblem
+
 include("objectives/Objective.jl")
 export ScoreObjective, minimise, maximise
 
@@ -113,6 +116,9 @@ export MiniMaxSampleSize
 
 include("constraints.jl")
 export PowerConstraint, TypeOneErrorRateConstraint, subject_to
+
+
+
 
 
 

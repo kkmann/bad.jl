@@ -1,4 +1,4 @@
-struct Problem
+struct AdaptationProblem
     grids
     n1values
     nmax
@@ -11,49 +11,44 @@ struct Problem
     power
     toer
     curtail_stage_one_fct
+    old_design
+    x1partial
+    n1partial
 
-    function Problem(
-            objective,
-            toer,
-            power;
-            maxmultipleonestage = 2.,
-            α = toer.α,
-            β = power.β,
-            pnull = mean(toer.score.prior),
-            palt = mean(power.score.prior),
-            nmax = min(150, Int(ceil(maxmultipleonestage*one_stage_sample_size(pnull, α, palt, β)))),
-            n1minfctr = .25,
-            n1min = Int(ceil(n1minfctr*one_stage_sample_size(pnull, α, palt, β))),
-            n1maxfctr = .51,
-            n1max = Int(ceil(n1maxfctr*nmax)),
-            n1values = collect(n1min:n1max),
-            n2mincontinueabs = 5,
-            n2mincontinuereln1 = 1.1,
-            n2maxcontinuereln1 = 4.,
-            x1min = 0,
-            type = :TwoStage,
-            curtail_stage_one_fct = 2/3
-        )
+    function AdaptationProblem(
+            design::OptimalDesign,
+            x1partial::TI,
+            n1partial::TI
+        ) where {TI<:Integer}
 
-        if nmax == 150
-            @warn @sprintf "automatically determined nmax=%i>150, curtailing to 150. Very large problem; consider more liberal initial error rate constraints or using the R package adoptr for non-exact methods!" Int(ceil(maxmultipleonestage*one_stage_sample_size(pnull, α, palt, β)))
-        end
+        @assert 0 <= x1partial <= n1partial
+
+        n1values              = design.problem.n1values[design.problem.n1values .>= n1partial]
+        nmax                  = design.problem.nmax
+        n2mincontinueabs      = design.problem.n2mincontinueabs
+        n2mincontinuereln1    = design.problem.n2mincontinuereln1
+        n2maxcontinuereln1    = design.problem.n2maxcontinuereln1
+        x1min                 = x1partial
+        type                  = design.problem.type
+        objective             = design.problem.objective
+        power                 = design.problem.power
+        toer                  = design.problem.toer
+        curtail_stage_one_fct = design.problem.curtail_stage_one_fct
 
         # prebuild sparse grid space
-
         function n2(n1, x1)
 
             if type == :OneStage; return [0] end
             n2min = max(n2mincontinueabs, Int(ceil(n1*n2mincontinuereln1)) - n1)
             n2max = min(nmax - n1, Int(floor(n1*(n2maxcontinuereln1))) - n1)
             if x1 > 0 # compute stage one toer for rejecting at x1
-                toer1 = 1 - cdf(x1 - 1, n1, toer.score.prior)
+                toer1 = 1 - cdf(x1 - 1, n1, toer.score.prior; xpartial = x1partial, npartial = n1partial)
                 if (toer1 <= curtail_stage_one_fct*toer.α)
                     return [0]
                 end
             end
             if x1 < n1 # compute stage one tter for rejecting at x1
-                tter1 = cdf(x1 + 1, n1, power.score.prior)
+                tter1 = cdf(x1 + 1, n1, power.score.prior; xpartial = x1partial, npartial = n1partial)
                 if (tter1 <= curtail_stage_one_fct*power.β)
                     return [0]
                 end
@@ -70,10 +65,10 @@ struct Problem
             candidates = collect(0:(n2 - 1))
             # filter Pr[X1 == x1] * toer[x1] > alpha
             prior      = toer.score.prior
-            candidates = candidates[ pmf(x1, n1, prior) .* (1 .- cdf.(candidates, n2, update(prior, x1, n1))) .<= toer.α ]
+            candidates = candidates[ pmf(x1, n1, prior; xpartial = x1partial, npartial = n1partial) .* (1 .- cdf.(candidates, n2, update(prior, x1, n1))) .<= toer.α ]
             # filter Pr[X1 == x1] * tter[x1]) > beta
             prior      = power.score.prior
-            candidates = candidates[ pmf(x1, n1, prior) .* cdf.(candidates, n2, update(prior, x1, n1)) .<= power.β ]
+            candidates = candidates[ pmf(x1, n1, prior; xpartial = x1partial, npartial = n1partial) .* cdf.(candidates, n2, update(prior, x1, n1)) .<= power.β ]
             # check conditional power and type one error rate
             valid = trues(length(candidates))
             for i in 1:length(candidates)
@@ -105,38 +100,40 @@ struct Problem
             objective,
             power,
             toer,
-            curtail_stage_one_fct
+            curtail_stage_one_fct,
+            design,
+            x1partial,
+            n1partial
         )
     end
 
 end
 
-Base.iterate(problem::Problem, state = 0) = state > 0 ? nothing : (problem, state + 1)
-Base.length(problem::Problem) = 1
+Base.iterate(problem::AdaptationProblem, state = 0) = state > 0 ? nothing : (problem, state + 1)
+Base.length(problem::AdaptationProblem) = 1
 
-Base.show(io::IO, problem::Problem) = print(io, string(problem))
-Base.show(io::IO, ::MIME"application/prs.juno.inline", problem::Problem) = print(io, string(problem))
+Base.show(io::IO, problem::AdaptationProblem) = print(io, string(problem))
+Base.show(io::IO, ::MIME"application/prs.juno.inline", problem::AdaptationProblem) = print(io, string(problem))
 
-Base.string(problem::Problem) = @sprintf "Problem<%i<=n1<=%i,n<=%i>" problem.n1values[1] problem.n1values[end] problem.nmax
+Base.string(problem::AdaptationProblem) = @sprintf "AdaptationProblem<x1>=%i,%i<=n1<=%i,n<=%i>" problem.x1min problem.n1values[1] problem.n1values[end] problem.nmax
 
 # query precomputed grid values
-grid(problem::Problem, n1)  = problem.grids[n1]
-grid(problem::Problem)      = [[ (n1, x1, n2, c2) for (x1, n2, c2) in grid] for (n1, grid) in problem.grids] |> x -> vcat(x...)
-x1(problem::Problem, n1)    = collect((problem.x1min):n1)
+grid(problem::AdaptationProblem, n1)  = problem.grids[n1]
+grid(problem::AdaptationProblem)      = [[ (n1, x1, n2, c2) for (x1, n2, c2) in grid] for (n1, grid) in problem.grids] |> x -> vcat(x...)
+x1(problem::AdaptationProblem, n1)    = collect((problem.x1min):n1)
 
-Base.size(problem::Problem, n1) = size(problem.grids[n1],1)
-Base.size(problem::Problem) = [size(problem, n1) for n1 = problem.n1values] |> sum
-
-
+Base.size(problem::AdaptationProblem, n1) = size(problem.grids[n1],1)
+Base.size(problem::AdaptationProblem) = [size(problem, n1) for n1 = problem.n1values] |> sum
 
 
-function build_model(problem::Problem; verbose::Bool = true)
+
+function build_model(problem::AdaptationProblem; verbose::Bool = true)
 
     n1values = problem.n1values
     if verbose
         prog = ProgressMeter.Progress(
             1 + length(n1values) + 3,
-            desc      = "Building IP Problem: ",
+            desc      = "Building IP AdaptationProblem: ",
             dt        = 0.1,
             barglyphs = ProgressMeter.BarGlyphs("[=> ]"),
             barlen    = 20,
@@ -198,6 +195,9 @@ function build_model(problem::Problem; verbose::Bool = true)
                 @constraint(m, ind[(n1_, x1_ + 1, 0, -Inf)] >= ind[(n1_, x1_, 0, -Inf)] )
             end
         end
+        # implement conditional error constraints
+        
+
     end
     update_progress("adding type one error rate constraint")
     @constraint(m,
@@ -220,65 +220,56 @@ end
 
 
 
-function optimise!(m, verbosity::Integer, timelimit::Integer)
-
-    optimize!(
-        m,
-        with_optimizer(GLPK.Optimizer, msg_lev = verbosity, tm_lim = 1000*timelimit)
-    )
-    # termination_status(model.jump_model)
-end
 
 
-
-function extract_solution(problem::Problem, ind, n1_selected)
+function extract_solution(problem::AdaptationProblem, ind, n1_selected)
 
     vals = value.(ind)
     # find n1
     n1_ = problem.n1values[findfirst(value.(n1_selected).data .== 1)]
-    c2_res = repeat([Inf], n1_ + 1)
-    n2_res = zeros(n1_ + 1)
+    c2_res = repeat([Inf], n1_ + 1 - problem.x1partial)
+    n2_res = zeros(n1_ + 1 - problem.x1partial)
     for (x1, n2, c2) in grid(problem, n1_)
         if vals[(n1_, x1, n2, c2)] == 1
-            c2_res[x1 + 1] = c2
-            n2_res[x1 + 1] = n2
+            c2_res[x1 + 1 - problem.x1partial] = c2
+            n2_res[x1 + 1 - problem.x1partial] = n2
         end
     end
-    return Design(n2_res, c2_res)
+    return collect(problem.x1partial:n1_), n2_res, c2_res
 end
 
 
 
-mutable struct OptimalDesign{TI<:Integer,TR<:Real} <: AbstractDesign
-    n2::Vector{TI}
-    c2::Vector{TR}
-    problem::Problem
-    info::Dict{String,Any}
-end
-function OptimalDesign(design::Design, problem::Problem, info::Dict{String,Any})
-    return OptimalDesign{eltype(design.n2),eltype(design.c2)}(design.n2, design.c2, problem, info)
-end
-
-function optimise(problem::Problem; verbosity = 3, timelimit = 180)
-
-    info = Dict{String,Any}()
-    _, info["model build time [s]"], _, _, _ = @timed begin
-        m, ind, n1_selected = build_model(problem; verbose = verbosity > 0)
-    end
-    _, info["model ILP solution time [s]"], _, _, _ = @timed begin
-        optimise!(m, verbosity, timelimit)
-    end
-    _, info["solution extraction time [s]"], _, _, _ = @timed begin
-        design = extract_solution(problem, ind, n1_selected)
-    end
-    info["total time [s]"] = sum([val for (key, val) in info])
-    info["number of variables"] = size(problem)
-    pnull   = problem.toer.score.pnull
-    α       = problem.toer.α
-    mlecomp = mlecompatible(design, pnull, α)
-    if !mlecomp["compatible"] & (verbosity > 0)
-        @warn @sprintf "design is not compatible with MLE-ordering, incompatibility degree is %i/%i" mlecomp["incompatibility degree"] size(mlecomp["details"], 1)
-    end
-    info["MLE-compatible"] = mlecomp
-    return OptimalDesign(design, problem, info)
-end
+# mutable struct OptimalDesign{TI<:Integer,TR<:Real} <: AbstractDesign
+#     n2::Vector{TI}
+#     c2::Vector{TR}
+#     problem::AdaptationProblem
+#     info::Dict{String,Any}
+# end
+# function OptimalDesign(design::Design, problem::AdaptationProblem, info::Dict{String,Any})
+#     return OptimalDesign{eltype(design.n2),eltype(design.c2)}(design.n2, design.c2, problem, info)
+# end
+#
+# function optimise(problem::AdaptationProblem; verbosity = 3, timelimit = 180)
+#
+#     info = Dict{String,Any}()
+#     _, info["model build time [s]"], _, _, _ = @timed begin
+#         m, ind, n1_selected = build_model(problem; verbose = verbosity > 0)
+#     end
+#     _, info["model ILP solution time [s]"], _, _, _ = @timed begin
+#         optimise!(m, verbosity, timelimit)
+#     end
+#     _, info["solution extraction time [s]"], _, _, _ = @timed begin
+#         design = extract_solution(problem, ind, n1_selected)
+#     end
+#     info["total time [s]"] = sum([val for (key, val) in info])
+#     info["number of variables"] = size(problem)
+#     pnull   = problem.toer.score.pnull
+#     α       = problem.toer.α
+#     mlecomp = mlecompatible(design, pnull, α)
+#     if !mlecomp["compatible"] & (verbosity > 0)
+#         @warn @sprintf "design is not compatible with MLE-ordering, incompatibility degree is %i/%i" mlecomp["incompatibility degree"] size(mlecomp["details"], 1)
+#     end
+#     info["MLE-compatible"] = mlecomp
+#     return OptimalDesign(design, problem, info)
+# end
