@@ -52,10 +52,9 @@ toer = problem.toer.score
 
 # check for monotone conditional error/power (for n1partial > 0)
 for n1partial in 1:n1(design)
-    println(n1partial)
     @test begin
         map(
-            x1p -> power(design; x1partial = x1p, n1partial = n1partial),
+            x1p -> pow(design; x1partial = x1p, n1partial = n1partial),
             collect(0:n1partial)
         ) |>
         x -> diff(x) |>

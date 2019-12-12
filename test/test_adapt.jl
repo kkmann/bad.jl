@@ -30,6 +30,13 @@ tmp, ind, n1_selected = bad.build_model(aproblem)
 bad.optimise!(tmp, 3, 60)
 
 
+aproblem2 = AdaptationProblem(design, 0, 0)
+
+tmp, ind, n1_selected = bad.build_model(aproblem2)
+
+bad.optimise!(tmp, 3, 60)
+
+
 plot(design)
 
 power(design)
