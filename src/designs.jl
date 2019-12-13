@@ -72,11 +72,18 @@ valid(design::AbstractDesign, x1::Int) = 0 <= x1 <= n1(design)
 valid(design::AbstractDesign, x1::Int, x2::Int) = valid(design, x1) & (0 <= x2 <= n2(design, x1))
 
 
+function fisher_information_integrand(p::TR, x::TI, n::TI)::TR where {TR<:Real,TI<:Integer}
+    ( x/p - (n - x)/(1 - p) )^2
+end
+
 function fisher_information(p::T, design::TD)::T where {T<:Real,TD<:AbstractDesign}
     # 0 < p < 1 ? nothing : error("p must be in (0, 1)")
     (p ≈ 0) | (p ≈ 1) ? (return Inf) : nothing
     XX        = sample_space(design)
-    log_prob  = log.(pmf.(XX[:, 1], XX[:, 2], design, p))
+    log_prob  = log.(
+        pmf.(XX[:, 2], n2.(design, XX[:, 1]), p) .*
+        pmf.(XX[:, 1], n1(design), p)
+    )
     return sum(exp.(log_prob .+ log.(fisher_information_integrand.(p, XX[:, 1] + XX[:, 2], n.(design, XX[:, 1])))))
 end
 

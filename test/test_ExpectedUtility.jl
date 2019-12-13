@@ -41,7 +41,6 @@ problem = Problem(
 
 design = optimise(problem; verbosity = 0)
 power(design), mtoer(design), ess(design), utility(design)
-plot(design)
 
 # now, lets relax the power and type one error rate constraints and maximise
 # utility instead! Note that we need to manually increase the marginal
@@ -56,6 +55,5 @@ uproblem = Problem(
 )
 udesign = optimise(uproblem; verbosity = 0)
 power(udesign), mtoer(udesign), ess(udesign), utility(udesign)
-plot(udesign)
 
 @test utility(udesign) > utility(design)

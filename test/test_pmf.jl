@@ -17,9 +17,9 @@ p = Beta(5, 7)
 
 # check that marginal distribution (of x1) sums to 1
 for xpartial in 0:10, npartial in xpartial:10
-    pmff = pmf.(0:10, 10, p; xpartial = xpartial, npartial = npartial)
+    pmff = pmf.(0:10, 10, p; partial = (xpartial, npartial) )
     @test sum(pmff) ≈ 1.0
-    @test cumsum(pmff) ≈ cdf.(0:10, 10, p; xpartial = xpartial, npartial = npartial)
+    @test cumsum(pmff) ≈ cdf.(0:10, 10, p; partial = (xpartial, npartial) )
 end
 
 
@@ -42,17 +42,13 @@ x1, x2 = XX[:,1], XX[:,2]
 
 
 
-# check that joint distribution sums to for all possible partial x1 observations
+# check that joint distribution sums to one for all possible partial x1 observations
 for x1partial in 0:n1(design)
-    @test 1.0 ≈ pmf.(x1, x2, design, p; x1partial = x1partial, n1partial = n1(design)) |> sum
+    pmf_x1x2 = pmf.(x2, n2.(design, x1), p) .*
+        pmf.(x1, n1(design), p; partial = (x1partial, n1(design)) )
+    @test 1.0 ≈ sum( pmf_x1x2 )
 end
 
-# check that marginal distribution (of x1) sums to 1
-for x1partial in 0:n1(design), n1partial in x1partial:n1(design)
-    pmff = pmf.(0:n1(design), n1(design), p; xpartial = x1partial, npartial = n1partial)
-    @test sum(pmff) ≈ 1.0
-    @test cumsum(pmff) ≈ cdf.(0:n1(design), n1(design), p; xpartial = x1partial, npartial = n1partial)
-end
 
 # check that conditional distribution (of x2 given x2) sums to 1
 for x1 in 0:n1(design)

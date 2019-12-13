@@ -45,44 +45,52 @@ end
 
 
 
-# conditonal expectation given x1
-function evaluate(score::TS, x1::TI, n1::TI, n2::TI, c2::TR, p::TR) where {TI<:Integer,TR<:Real,TS<:Score}
+# conditional expectation given x1
+function evaluate(score::TS, x1::TI, n1::TI, n2::TI, c2::TR, p::TR; partial_stage_two::Tuple{TI,TI} = (0, 0)) where {TI<:Integer,TR<:Real,TS<:Score}
 
-    X2 = collect(0:n2)
-    return sum( evaluate.(score, x1, n1, X2, n2, c2, p) .* pmf.(X2, n2, p) )
+    @assert 0 <= partial_stage_two[1] <= partial_stage_two[2] <= n2
+    X2 = collect(partial_stage_two[1]:n2)
+    return sum(
+        evaluate.(score, x1, n1, X2, n2, c2, p) .*
+        pmf.(X2, n2, p; partial = partial_stage_two)
+    )
 end
-function evaluate(score::TS, x1::TI, n1::TI, n2::TI, c2::TR) where {TI<:Integer,TR<:Real,TS<:Score}
+function evaluate(score::TS, x1::TI, n1::TI, n2::TI, c2::TR; partial_stage_two::Tuple{TI,TI} = (0, 0)) where {TI<:Integer,TR<:Real,TS<:Score}
     expectation(
-        p -> evaluate(score, x1, n1, n2, c2, p),
-        update(score.prior, x1, n1)
+        p -> evaluate(score, x1, n1, n2, c2, p; partial_stage_two = partial_stage_two),
+        update(score.prior, x1 + partial_stage_two[1], n1 + partial_stage_two[2])
     )
 end
 
-function evaluate(score::TS, design::TD, x1::TI, p::TR) where {TI<:Integer,TR<:Real,TD<:AbstractDesign,TS<:Score}
+function evaluate(score::TS, design::TD, x1::TI, p::TR; partial_stage_two::Tuple{TI,TI} = (0, 0)) where {TI<:Integer,TR<:Real,TD<:AbstractDesign,TS<:Score}
 
-    return evaluate(score, x1, n1(design), n2(design, x1), c2(design, x1), p)
+    return evaluate(score, x1, n1(design), n2(design, x1), c2(design, x1), p; partial_stage_two = partial_stage_two)
 end
-function evaluate(score::TS, design::TD, x1::TI) where {TI<:Integer,TD<:AbstractDesign,TS<:Score}
+function evaluate(score::TS, design::TD, x1::TI; partial_stage_two::Tuple{TI,TI} = (0, 0)) where {TI<:Integer,TD<:AbstractDesign,TS<:Score}
     expectation(
-        p -> evaluate(score, design, x1, p),
-        update(score.prior, x1, n1(design))
+        p -> evaluate(score, design, x1, p; partial_stage_two = partial_stage_two),
+        update(score.prior, x1 + partial_stage_two[1], n1(design) + partial_stage_two[2])
     )
 end
 
 
 # marginalise X1, X2
-function evaluate(score::TS, design::TD, p::TR; x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TR<:Real,TD<:AbstractDesign,TS<:Score}
+function evaluate(score::TS, design::TD, p::TR; partial_stage_one::Tuple{TI,TI} = (0, 0)) where {TI<:Integer,TR<:Real,TD<:AbstractDesign,TS<:Score}
 
-    @assert 0 <= x1partial <= n1partial <= n1(design)
-
+    @assert 0 <= partial_stage_one[1] <= partial_stage_one[2] <= n1(design)
     XX = sample_space(design)
-    return sum( evaluate.(score, design, XX[:,1], XX[:,2], p) .* pmf.(XX[:,1], XX[:,2], design, p; x1partial = x1partial, n1partial = n1partial) )
+    XX = XX[XX[:,1] .>= partial_stage_one[1], :]
+    return sum(
+        evaluate.(score, design, XX[:,1], XX[:,2], p) .*
+        pmf.(XX[:,2], n2.(design, XX[:,1]), p) .*
+        pmf.(XX[:,1], n1(design), p; partial = partial_stage_one)
+    )
 end
-function evaluate(score::TS, design::TD; x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TD<:AbstractDesign,TS<:Score}
+function evaluate(score::TS, design::TD; partial_stage_one::Tuple{TI,TI} = (0, 0)) where {TI<:Integer,TD<:AbstractDesign,TS<:Score}
 
     expectation(
-        p -> evaluate(score, design, p; x1partial = x1partial, n1partial = n1partial),
-        update(score.prior, x1partial, n1partial)
+        p -> evaluate(score, design, p; partial_stage_one = partial_stage_one),
+        update(score.prior, partial_stage_one[1], partial_stage_one[1])
     )
 end
 
@@ -90,8 +98,8 @@ end
 # compute Pr[X1=x1]*E_prior[s(x1, n1, X2, n2(x1), c2(x1))] = score_integrand(x1, n1, n2, c2)
 # this is the only thing that actually used during optmisation
 # feel free to implement specific, more efficient versions for each score!
-function integrand_x1(score::TS, x1::TI, n1::TI, n2::TI, c2::TR; x1partial::TI = 0, n1partial::TI = 0) where {TS<:Score,TI<:Integer,TR<:Real}
-    score(x1, n1, n2, c2) * pmf(x1, n1, score.prior; xpartial = x1partial, npartial = n1partial)
+function integrand_x1(score::TS, x1::TI, n1::TI, n2::TI, c2::TR; partial_stage_one::Tuple{TI,TI} = (0, 0)) where {TS<:Score,TI<:Integer,TR<:Real}
+    score(x1, n1, n2, c2) * pmf(x1, n1, score.prior; partial = partial_stage_one)
 end
 
 
@@ -125,13 +133,13 @@ end
 
 # since we integrate power, it is easier to do that in one wash, also
 # closed form cdf is available, note that the score prior is already properly conditioned
-function integrand_x1(score::Power, x1::TI, n1::TI, n2::TI, c2::TR; x1partial::TI = 0, n1partial::TI = 0) where {TS<:Score,TI<:Integer,TR<:Real}
+function integrand_x1(score::Power, x1::TI, n1::TI, n2::TI, c2::TR; partial_stage_one::Tuple{TI,TI} = (0, 0) ) where {TS<:Score,TI<:Integer,TR<:Real}
 
     expectation( # conditional expected power
         p -> 1 - cdf(c2, n2, p),
         update(score.prior, x1, n1)
     ) * pmf( # conditional pmf given partial observations
-        x1, n1, score.prior; xpartial = x1partial, npartial = n1partial
+        x1, n1, score.prior; partial = partial_stage_one
     )
 end
 
@@ -153,13 +161,13 @@ end
 
 # since we integrate power, it is easier to do that in one wash, also
 # closed form cdf is available, note that the score prior is already properly conditioned
-function integrand_x1(score::TypeOneErrorRate, x1::TI, n1::TI, n2::TI, c2::TR; x1partial::TI = 0, n1partial::TI = 0) where {TS<:Score,TI<:Integer,TR<:Real}
+function integrand_x1(score::TypeOneErrorRate, x1::TI, n1::TI, n2::TI, c2::TR; partial_stage_one::Tuple{TI,TI} = (0, 0) ) where {TS<:Score,TI<:Integer,TR<:Real}
 
     expectation( # conditional expected power
         p -> 1 - cdf(c2, n2, p),
         update(score.prior, x1, n1)
     ) * pmf( # conditional pmf given partial observations
-        x1, n1, score.prior; xpartial = x1partial, npartial = n1partial
+        x1, n1, score.prior; partial = partial_stage_one
     )
 end
 
@@ -201,9 +209,9 @@ evaluate(score::CompositeScore, x1::TI, n1::TI, n2::TI, c2::TR, p::TR) where {TI
 evaluate(score::CompositeScore, x1::TI, n1::TI, n2::TI, c2::TR) where {TI<:Integer,TR<:Real} = sum( score.ω .* evaluate.(score.components, x1, n1, n2, c2) )
 evaluate(score::CompositeScore, design::TD, x1::TI, p::TR) where {TI<:Integer,TR<:Real,TD<:AbstractDesign} = sum( score.ω .* evaluate.(score.components, design, x1, p) )
 evaluate(score::CompositeScore, design::TD, x1::TI) where {TI<:Integer,TD<:AbstractDesign} = sum( score.ω .* evaluate.(score.components, design, x1) )
-evaluate(score::CompositeScore, design::TD, p::TR; x1partial::TI = 0, n1partial::TI = 0) where {TR<:Real,TI<:Integer,TD<:AbstractDesign} = sum( score.ω .* evaluate.(score.components, design, p; xpartial = x1partial, npartial = n1partial) )
-evaluate(score::CompositeScore, design::TD; x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TD<:AbstractDesign} = sum( score.ω .* evaluate.(score.components, design; x1partial = x1partial, n1partial = n1partial) )
+evaluate(score::CompositeScore, design::TD, p::TR; partial_stage_one::Tuple{TI,TI} = (0, 0)) where {TR<:Real,TI<:Integer,TD<:AbstractDesign} = sum( score.ω .* evaluate.(score.components, design, p; partial_stage_one = partial_stage_one) )
+evaluate(score::CompositeScore, design::TD; partial_stage_one::Tuple{TI,TI} = (0, 0)) where {TI<:Integer,TD<:AbstractDesign} = sum( score.ω .* evaluate.(score.components, design; partial_stage_one = partial_stage_one) )
 
-function integrand_x1(score::CompositeScore, x1::TI, n1::TI, n2::TI, c2::TR; x1partial::TI = 0, n1partial::TI = 0) where {TS<:Score,TI<:Integer,TR<:Real}
-    return sum( score.ω .* integrand_x1.(score.components, x1, n1, n2, c2; x1partial = x1partial, n1partial = x1partial) )
+function integrand_x1(score::CompositeScore, x1::TI, n1::TI, n2::TI, c2::TR; partial_stage_one::Tuple{TI,TI} = (0, 0) ) where {TS<:Score,TI<:Integer,TR<:Real}
+    return sum( score.ω .* integrand_x1.(score.components, x1, n1, n2, c2; partial_stage_one = partial_stage_one) )
 end

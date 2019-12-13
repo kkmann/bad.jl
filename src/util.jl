@@ -49,7 +49,3 @@ function one_stage_sample_size(p0::Real, α::Real, p1::Real, β::Real)
     napprox = p1*(1 - p1)*( (z_1_α + z_1_β) / (p1 - p0) )^2
     return Int(ceil(napprox))
 end
-
-function fisher_information_integrand(p::TR, x::TI, n::TI)::TR where {TR<:Real,TI<:Integer}
-    ( x/p - (n - x)/(1 - p) )^2
-end

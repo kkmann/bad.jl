@@ -54,18 +54,40 @@ toer = problem.toer.score
 for n1partial in 1:n1(design)
     @test begin
         map(
-            x1p -> pow(design; x1partial = x1p, n1partial = n1partial),
-            collect(0:n1partial)
+            x1p -> pow(design; partial_stage_one = (x1p, n1partial) ),
+            0:n1partial
         ) |>
         x -> diff(x) |>
         x -> minimum(x) >= -sqrt(eps()) # numerical inaccuracies
     end
     @test begin
         map(
-            x1p -> toer(design; x1partial = x1p, n1partial = n1partial),
-            collect(0:n1partial)
+            x1p -> toer(design; partial_stage_one = (x1p, n1partial) ),
+            0:n1partial
         ) |>
         x -> diff(x) |>
         x -> minimum(x) >= -sqrt(eps()) # numerical inaccuracies
+    end
+end
+
+# check for monotone conditional error/power in stage two
+for x1 in 0:n1(design)
+    for n2partial in 1:n2(design, x1)
+        @test begin
+            map(
+                x2p -> pow(design, x1; partial_stage_two = (x2p, n2partial) ),
+                0:n2partial
+            ) |>
+            x -> diff(x) |>
+            x -> minimum(x) >= -sqrt(eps()) # numerical inaccuracies
+        end
+        @test begin
+            map(
+                x2p -> toer(design, x1; partial_stage_two = (x2p, n2partial) ),
+                0:n2partial
+            ) |>
+            x -> diff(x) |>
+            x -> minimum(x) >= -sqrt(eps()) # numerical inaccuracies
+        end
     end
 end
