@@ -80,11 +80,15 @@ function fisher_information(p::T, design::TD)::T where {T<:Real,TD<:AbstractDesi
     # 0 < p < 1 ? nothing : error("p must be in (0, 1)")
     (p ≈ 0) | (p ≈ 1) ? (return Inf) : nothing
     XX        = sample_space(design)
+    x1, x2    = XX[:,1], XX[:,2]
     log_prob  = log.(
-        pmf.(XX[:, 2], n2.(design, XX[:, 1]), p) .*
-        pmf.(XX[:, 1], n1(design), p)
+        pmf.(x2, n2.(design, x1), p) .*
+        pmf.(x1, n1(design), p)
     )
-    return sum(exp.(log_prob .+ log.(fisher_information_integrand.(p, XX[:, 1] + XX[:, 2], n.(design, XX[:, 1])))))
+    x = x1 .+ x2
+    return sum( exp.( log_prob .+ log.(
+        ( x./p .- (n.(design, x1) .- x)./(1 - p) ).^2 
+    ) ) )
 end
 
 
