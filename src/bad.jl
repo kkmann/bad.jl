@@ -18,7 +18,7 @@ import Roots
 using JuMP, GLPK, Ipopt
 GLPK.jl_set_preemptive_check(false) # faster!
 
-import DataFrames, Gadfly
+import DataFrames
 
 
 
@@ -33,8 +33,9 @@ export valid
 include("designs.jl")
 export Design, OptimalDesign,
     n1, n2, n, c2,
-    early_futility, early_efficacy, continuation_region, futility_region, efficacy_region, early_stop_region,
-    as_table, reject, sample_space, plot
+    early_futility, early_efficacy, continuation_region, futility_region,
+    efficacy_region, early_stop_region,
+    as_table, reject, sample_space
 
 
 

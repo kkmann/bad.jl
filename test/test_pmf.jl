@@ -49,16 +49,16 @@ end
 
 # check that marginal distribution (of x1) sums to 1
 for x1partial in 0:n1(design), n1partial in x1partial:n1(design)
-    pmff = pmf_x1.(0:n1(design), design, p; x1partial = x1partial, n1partial = n1partial)
+    pmff = pmf.(0:n1(design), n1(design), p; xpartial = x1partial, npartial = n1partial)
     @test sum(pmff) ≈ 1.0
-    @test cumsum(pmff) ≈ cdf_x1.(0:n1(design), design, p; x1partial = x1partial, n1partial = n1partial)
+    @test cumsum(pmff) ≈ cdf.(0:n1(design), n1(design), p; xpartial = x1partial, npartial = n1partial)
 end
 
 # check that conditional distribution (of x2 given x2) sums to 1
-for x1 in 0:n1(design), x1partial in 0:n1(design), n1partial in x1partial:n1(design)
-    pmff = pmf_x2_given_x1.(0:n2(design, x1), x1, design, p)
+for x1 in 0:n1(design)
+    pmff = pmf.(0:n2(design, x1), n2(design, x1), p)
     @test sum(pmff) ≈ 1.0
-    @test all( cumsum(pmff) .≈ cdf_x2_given_x1.(0:n2(design, x1), x1, design, p))
+    @test all( cumsum(pmff) .≈ cdf.(0:n2(design, x1), n2(design, x1), p))
 end
 
 @test true

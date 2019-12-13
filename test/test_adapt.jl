@@ -20,8 +20,29 @@ problem = Problem(
     subject_to(power, β)
 )
 
-@time design = optimise(problem; verbosity = 3)
+design = optimise(problem; verbosity = 0)
 power(design), mtoer(design), ess(design)
+
+as_table(design)
+design.n2
+
+
+
+α_new = mtoer(design; x1partial = 0, n1partial = 0)
+β_new = 1 - power(design; x1partial = 0, n1partial = 0)
+
+aproblem = AdaptationProblem(design, 0, 0)
+
+tmp, ind, n1_selected = bad.build_model(aproblem)
+
+bad.optimise!(tmp, 3, 60)
+
+bad.extract_solution(aproblem, ind, n1_selected)
+
+obs = (5, 15)
+
+α_new = mtoer(design; x1partial = obs[1], n1partial = obs[2])
+β_new = 1 - power(design; x1partial = obs[1], n1partial = obs[2])
 
 aproblem = AdaptationProblem(design, 6, 15)
 

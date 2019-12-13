@@ -50,16 +50,6 @@ end
 
 
 
-function plot(design::AbstractDesign)
-    tbl = as_table(design)
-    Gadfly.plot(
-        Gadfly.layer(tbl, x = :phat, y = :n, Gadfly.Geom.hair, Gadfly.Geom.point),
-        Gadfly.layer(tbl, x = :phat, y = tbl[!, :c2] + tbl[!, :x1], Gadfly.Geom.hair, Gadfly.Geom.point, Gadfly.Theme(default_color = Gadfly.colorant"orange"))
-    )
-end
-
-
-
 function sample_space(design::TD) where {TD<:AbstractDesign}
 
     return [ [x1, x2] for x1 in 0:n1(design) for x2 in 0:n2(design, x1) ] |>

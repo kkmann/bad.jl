@@ -21,14 +21,6 @@ function pmf(x::TI, n::TI, p::TP; xpartial::TI = 0, npartial::TI = 0) where {TI<
     )
 end
 
-function pmf_x1(x1::TI, design::TD, p::Union{TR,TP}; x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TR<:Real,TP<:bad.Prior,TD<:bad.AbstractDesign}
-    pmf(x1, n1(design), p; xpartial = x1partial, npartial = n1partial)
-end
-
-function pmf_x2_given_x1(x2::TI, x1::TI, design::TD, p::Union{TR,TP}) where {TI<:Integer,TR<:Real,TP<:bad.Prior,TD<:bad.AbstractDesign}
-    pmf(x2, n2(design, x1), p; xpartial = 0, npartial = 0)
-end
-
 
 
 function cdf(x::TR1, n::TI, p::TR2; xpartial::TI = 0, npartial::TI = 0) where {TI<:Integer,TR1,TR2<:Real}
@@ -52,15 +44,6 @@ function cdf(x::TR, n::TI, p::TP; xpartial::TI = 0, npartial::TI = 0) where {TI<
         update(p, xpartial, npartial)
     )
 end
-
-function cdf_x1(x1::TR1, design::TD, p::Union{TR2,TP}; x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TR1,TR2<:Real,TP<:bad.Prior,TD<:bad.AbstractDesign}
-    cdf(x1, n1(design), p; xpartial = x1partial, npartial = n1partial)
-end
-
-function cdf_x2_given_x1(x2::TR1, x1::TI, design::TD, p::Union{TR2,TP}) where {TI<:Integer,TR1,TR2<:Real,TP<:bad.Prior,TD<:bad.AbstractDesign}
-    cdf(x2, n2(design, x1), p)
-end
-
 
 
 

@@ -11,14 +11,15 @@ struct AdaptationProblem
     power
     toer
     curtail_stage_one_fct
-    old_design
     x1partial
     n1partial
 
     function AdaptationProblem(
             design::OptimalDesign,
             x1partial::TI,
-            n1partial::TI
+            n1partial::TI;
+            α = design.problem.toer.score(design; x1partial = x1partial, n1partial = n1partial),
+            β = 1 - design.problem.power.score(design; x1partial = x1partial, n1partial = n1partial)
         ) where {TI<:Integer}
 
         @assert 0 <= x1partial <= n1partial
@@ -35,6 +36,8 @@ struct AdaptationProblem
         toer                  = design.problem.toer
         curtail_stage_one_fct = design.problem.curtail_stage_one_fct
 
+
+
         # prebuild sparse grid space
         function n2(n1, x1)
 
@@ -42,13 +45,19 @@ struct AdaptationProblem
             n2min = max(n2mincontinueabs, Int(ceil(n1*n2mincontinuereln1)) - n1)
             n2max = min(nmax - n1, Int(floor(n1*(n2maxcontinuereln1))) - n1)
             if x1 > 0 # compute stage one toer for rejecting at x1
-                toer1 = 1 - cdf(x1 - 1, n1, toer.score.prior; xpartial = x1partial, npartial = n1partial)
+                toer1 = 1 - cdf(
+                    x1 - 1, n1, toer.score.prior;
+                    xpartial = x1partial, npartial = n1partial
+                )
                 if (toer1 <= curtail_stage_one_fct*toer.α)
                     return [0]
                 end
             end
             if x1 < n1 # compute stage one tter for rejecting at x1
-                tter1 = cdf(x1 + 1, n1, power.score.prior; xpartial = x1partial, npartial = n1partial)
+                tter1 = cdf(x1 + 1, n1,
+                    power.score.prior;
+                    xpartial = x1partial, npartial = n1partial
+                )
                 if (tter1 <= curtail_stage_one_fct*power.β)
                     return [0]
                 end
@@ -101,7 +110,6 @@ struct AdaptationProblem
             power,
             toer,
             curtail_stage_one_fct,
-            design,
             x1partial,
             n1partial
         )
@@ -196,7 +204,7 @@ function build_model(problem::AdaptationProblem; verbose::Bool = true)
             end
         end
         # implement conditional error constraints
-        
+
 
     end
     update_progress("adding type one error rate constraint")
