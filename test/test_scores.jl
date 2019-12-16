@@ -91,3 +91,5 @@ for x1 in 0:n1(design)
         end
     end
 end
+
+@test true

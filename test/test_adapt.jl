@@ -27,68 +27,23 @@ as_table(design)
 design.n2
 
 
-
-α_new = mtoer(design; x1partial = 0, n1partial = 0)
-β_new = 1 - power(design; x1partial = 0, n1partial = 0)
-
-aproblem = AdaptationProblem(design, 0, 0)
-
-tmp, ind, n1_selected = bad.build_model(aproblem)
-
-bad.optimise!(tmp, 3, 60)
-
-bad.extract_solution(aproblem, ind, n1_selected)
-
-obs = (5, 15)
-
-α_new = mtoer(design; x1partial = obs[1], n1partial = obs[2])
-β_new = 1 - power(design; x1partial = obs[1], n1partial = obs[2])
-
-aproblem = AdaptationProblem(design, 6, 15)
-
-tmp, ind, n1_selected = bad.build_model(aproblem)
-
-bad.optimise!(tmp, 3, 60)
+mtoer(design, 5; partial_stage_two = (2, 5))
 
 
-aproblem2 = AdaptationProblem(design, 0, 0)
+α_new = mtoer(design; partial_stage_one = (0, 0) )
+β_new = 1 - power(design; partial_stage_one = (0, 0) )
 
-tmp, ind, n1_selected = bad.build_model(aproblem2)
+obs = 5, 10
+α_new = mtoer(design; partial_stage_one = obs )
+β_new = 1 - power(design; partial_stage_one = obs )
 
-bad.optimise!(tmp, 3, 60)
+problem2 = Problem(
+    minimise(ess),
+    subject_to(mtoer, α_new),
+    subject_to(power, β_new);
+    nmax = 100,
+    n1values = collect(10:25),
+    partial = obs
+)
 
-
-plot(design)
-
-power(design)
-
-power(design; x1partial = 6, n1partial = 15)
-mtoer(design; x1partial = 6, n1partial = 15)
-
-6/15
-
-@test begin
-    map(
-        x1p -> power(design; x1partial = x1p, n1partial = 16),
-        0:15
-    ) |>
-    x -> diff(x) |>
-    x -> minimum(x) >= -sqrt(eps()) # numerical inaccuracies
-end
-@test begin
-    map(
-        x1p -> toer(design; x1partial = x1p, n1partial = 16),
-        0:15
-    ) |>
-    x -> diff(x) |>
-    x -> minimum(x) >= -sqrt(eps()) # numerical inaccuracies
-end
-
-
-xx1, nn2, cc2 = bad.extract_solution(aproblem, ind, n1_selected)
-
-@time design = optimise(aproblem; verbosity = 3)
-power(design), mtoer(design), ess(design)
-
-bad.grid(problem)
-bad.grid(aproblem)
+optimise(problem2)

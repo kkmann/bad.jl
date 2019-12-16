@@ -33,28 +33,13 @@ integrand_x1(obj::ExpectedScoreObjective, args...; kwargs...) = integrand_x1(obj
 
 update!(obj::ExpectedScoreObjective, x::TI, n::TI) where {TS<:Score,TI<:Integer} = update!(obj.score, x, n)
 
-function add!(
-        JuMP_model_and_indicator_variables::Tuple,
-        objective::ExpectedScoreObjective,
-        problem::Problem
-    )
-    m, ind = JuMP_model_and_indicator_variables
-    sense  = (objective.orientation == :minimise) ? MOI.OptimizationSense(0) : MOI.OptimizationSense(1)
-    # score integrand must include a factor pmf(x1, n1, prior) but in many
-    # cases it is more effective to integrate that in the score calculation
-    @objective(m, sense,
-        sum( integrand_x1(objective, x1, n1, n2, c2)*ind[(n1, x1, n2, c2)]
-            for (n1, x1, n2, c2) in grid(problem)
-        )
-    )
-end
-
 
 function add!(
         JuMP_model_and_indicator_variables::Tuple,
         objective::ExpectedScoreObjective,
-        problem::AdaptationProblem
-    )
+        problem::Problem;
+        partial::Tuple{TI,TI} = (0, 0)
+    ) where {TI<:Integer}
     m, ind = JuMP_model_and_indicator_variables
     sense  = (objective.orientation == :minimise) ? MOI.OptimizationSense(0) : MOI.OptimizationSense(1)
     # score integrand must include a factor pmf(x1, n1, prior) but in many
@@ -63,8 +48,7 @@ function add!(
         sum(
             integrand_x1(
                 objective, x1, n1, n2, c2;
-                x1partial = problem.x1partial,
-                n1partial = problem.n1partial
+                partial_stage_one = partial
             ) *
             ind[(n1, x1, n2, c2)]
             for (n1, x1, n2, c2) in grid(problem)

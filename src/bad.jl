@@ -102,12 +102,9 @@ export update!,
     CompositeScore
 
 
-
 include("Problem.jl")
 export Problem, optimise
 
-include("AdaptationProblem.jl")
-export AdaptationProblem
 
 include("objectives/Objective.jl")
 export ScoreObjective, minimise, maximise

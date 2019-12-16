@@ -84,7 +84,8 @@ resid = cmle.(𝚾[:,1], 𝚾[:,2], design) .- mle.(𝚾[:,1], 𝚾[:,2], design
 get_design(p_sample_size, pnull, palt) = Problem(
         minimise(SampleSize(p | p_sample_size)),
         subject_to(TypeOneErrorRate(p | pnull), α),
-        subject_to(Power(p >= palt), β)
+        subject_to(Power(p >= palt), β);
+        maxmultipleonestage = 2.5
     ) |> problem -> optimise(problem; verbosity = 0)
 
 
