@@ -7,7 +7,7 @@ pmcr  = .3
 p     = Beta(5, 7)
 α, β  = .05, .2
 problem = Problem(
-    minimise(SampleSize(p)),
+    minimise(SampleSize(p | (pnull + .2) )),
     subject_to(TypeOneErrorRate(p | pnull), α),
     subject_to(Power(p >= pmcr), β)
 )
@@ -43,7 +43,7 @@ rbe = RaoBlackwellEstimator()
 x1_early_stop = early_stop_region(design)
 
 @test all( mle.(x1_early_stop, 0, design) .== rbe.(x1_early_stop, 0, design) )
-# design is injectie on continuation region, rbe = x1/n1?
+# design is injective on continuation region, rbe = x1/n1?
 # allow numerical inaccuracy for rbe!
 @test all( rbe.(𝚾[:,1], 𝚾[:,2], design) .≈ 𝚾[:,1]./n1(design) )
 @test maximum( abs.( bias.(pp, rbe, design) ) ) ≈ 0 atol = 1e-12
@@ -69,10 +69,10 @@ design = Design(shan_n2, shan_c .- (0:shan_n1))
 
 @test !mlecompatible(design, pnull, α)["compatible"]
 
-cmle = CompatibleMLE(design)
+cmle  = CompatibleMLE(design)
 @test compatible(EstimatorOrdering(cmle), design, pnull, α)["compatible"]
 
-𝚾 = sample_space(design)
+𝚾     = sample_space(design)
 resid = cmle.(𝚾[:,1], 𝚾[:,2], design) .- mle.(𝚾[:,1], 𝚾[:,2], design)
 # make sure there is a (minute) difference
 @test .001 < maximum(resid)
@@ -84,7 +84,8 @@ resid = cmle.(𝚾[:,1], 𝚾[:,2], design) .- mle.(𝚾[:,1], 𝚾[:,2], design
 get_design(p_sample_size, pnull, palt) = Problem(
         minimise(SampleSize(p | p_sample_size)),
         subject_to(TypeOneErrorRate(p | pnull), α),
-        subject_to(Power(p >= palt), β)
+        subject_to(Power(p >= palt), β);
+        maxmultipleonestage = 2.5
     ) |> problem -> optimise(problem; verbosity = 0)
 
 

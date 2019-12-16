@@ -10,33 +10,40 @@ struct Problem
     objective
     power
     toer
+    curtail_stage_one_fct
+    partial
 
     function Problem(
-            objective,
-            toer,
-            power;
-            maxmultipleonestage = 2.,
-            α = toer.α,
-            β = power.β,
-            pnull = mean(toer.score.prior),
-            palt = mean(power.score.prior),
-            nmax = min(150, Int(ceil(maxmultipleonestage*one_stage_sample_size(pnull, α, palt, β)))),
-            n1minfctr = .25,
-            n1min = Int(ceil(n1minfctr*one_stage_sample_size(pnull, α, palt, β))),
-            n1maxfctr = .51,
-            n1max = Int(ceil(n1maxfctr*nmax)),
-            n1values = collect(n1min:n1max),
-            n2mincontinueabs = 5,
-            n2mincontinuereln1 = 1.1,
-            n2maxcontinuereln1 = 4.,
-            x1min = 0,
-            type = :TwoStage,
-            curtail_stage_one_fct = 2/3
-        )
+        objective,
+        toer,
+        power;
+        partial::Tuple{TI,TI} = (0, 0),
+        maxmultipleonestage   = 2.,
+        α                     = toer.α,
+        β                     = power.β,
+        pnull                 = mean(toer.score.prior),
+        palt                  = mean(power.score.prior),
+        nmax                  = min(150, Int(ceil(
+            maxmultipleonestage*one_stage_sample_size(pnull, α, palt, β)
+        ))),
+        n1minfctr             = .25,
+        n1min                 = max(
+            partial[2],
+            Int(ceil(n1minfctr*one_stage_sample_size(pnull, α, palt, β)))
+        ),
+        n1maxfctr             = .51,
+        n1max                 = Int(ceil(n1maxfctr*nmax)),
+        n1values              = collect(n1min:n1max),
+        n2mincontinueabs      = 5,
+        n2mincontinuereln1    = 1.1,
+        n2maxcontinuereln1    = 4.,
+        type                  = :TwoStage,
+        curtail_stage_one_fct = .1
+    ) where {TI<:Integer}
 
-        if nmax == 150
-            @warn @sprintf "automatically determined nmax=%i>150, curtailing to 150. Very large problem; consider more liberal initial error rate constraints or using the R package adoptr for non-exact methods!" Int(ceil(maxmultipleonestage*one_stage_sample_size(pnull, α, palt, β)))
-        end
+        @assert 0 <= partial[1] <= partial[2]
+
+        x1min = partial[1]
 
         # prebuild sparse grid space
 
@@ -45,22 +52,13 @@ struct Problem
             if type == :OneStage; return [0] end
             n2min = max(n2mincontinueabs, Int(ceil(n1*n2mincontinuereln1)) - n1)
             n2max = min(nmax - n1, Int(floor(n1*(n2maxcontinuereln1))) - n1)
-            if x1 > 0 # compute stage one toer for rejecting at x1
-                toer1 = 1 - pbinom(x1 - 1, n1, toer.score.prior)
-                if (toer1 <= curtail_stage_one_fct*toer.α)
-                    return [0]
-                end
-            end
-            if x1 < n1 # compute stage one tter for rejecting at x1
-                tter1 = pbinom(x1 + 1, n1, power.score.prior)
-                if (tter1 <= curtail_stage_one_fct*power.β)
-                    return [0]
-                end
+            # curtail if error rates are too low in stage one
+            if (1 - cdf(x1 - 1, n1, toer.score.prior; partial = partial) <= curtail_stage_one_fct*α) |
+                (cdf(x1 + 1, n1, power.score.prior; partial = partial) <= curtail_stage_one_fct*β)
+                return [0]
             end
             # add 0 for early stopping
-            res = n2min > 0 ? vcat( [0], collect(n2min:n2max) ) : collect(n2min:n2max)
-            @assert res[1] == 0
-            return res
+            return n2min > 0 ? vcat( [0], collect(n2min:n2max) ) : collect(n2min:n2max)
         end
 
         function c2(n1, x1, n2)
@@ -69,16 +67,16 @@ struct Problem
             candidates = collect(0:(n2 - 1))
             # filter Pr[X1 == x1] * toer[x1] > alpha
             prior      = toer.score.prior
-            candidates = candidates[ dbinom(x1, n1, prior) .* (1 .- pbinom.(candidates, n2, prior)) .<= toer.α ]
+            candidates = candidates[ pmf(x1, n1, prior; partial = partial) .* (1 .- cdf.(candidates, n2, update(prior, x1, n1))) .<= α ]
             # filter Pr[X1 == x1] * tter[x1]) > beta
             prior      = power.score.prior
-            candidates = candidates[ dbinom(x1, n1, prior) .* pbinom.(candidates, n2, prior) .<= power.β ]
+            candidates = candidates[ pmf(x1, n1, prior; partial = partial) .* cdf.(candidates, n2, update(prior, x1, n1)) .<= β ]
             # check conditional power and type one error rate
             valid = trues(length(candidates))
             for i in 1:length(candidates)
                 for cnstr in (power, toer)
                     min, max = cnstr.conditional
-                    valid[i] = !(min <= (1 - pbinom(candidates[i], n2, cnstr.score.prior)) <= max) ? false : valid[i]
+                    valid[i] = !(min <= (1 - cdf(candidates[i], n2, update(cnstr.score.prior, x1, n1))) <= max) ? false : valid[i]
                 end
             end
             return vcat([-Inf], candidates[valid], [Inf]) # required to be safe!
@@ -103,7 +101,9 @@ struct Problem
             type,
             objective,
             power,
-            toer
+            toer,
+            curtail_stage_one_fct,
+            partial
         )
     end
 
@@ -115,19 +115,14 @@ Base.length(problem::Problem) = 1
 Base.show(io::IO, problem::Problem) = print(io, string(problem))
 Base.show(io::IO, ::MIME"application/prs.juno.inline", problem::Problem) = print(io, string(problem))
 
-Base.string(problem::Problem) = @sprintf "Problem<%i<=n1<=%i,n<=%i>" problem.n1values[1] problem.n1values[end] problem.nmax
+Base.string(problem::Problem) = @sprintf "Problem<x1>=%i,%i<=n1<=%i,n<=%i>" problem.x1min problem.n1values[1] problem.n1values[end] problem.nmax
 
 # query precomputed grid values
 grid(problem::Problem, n1)  = problem.grids[n1]
 grid(problem::Problem)      = [[ (n1, x1, n2, c2) for (x1, n2, c2) in grid] for (n1, grid) in problem.grids] |> x -> vcat(x...)
-x1(problem::Problem, n1)    = collect((problem.x1min):n1)
-x1(problem::Problem, n1, i) = problem.grids[n1][i,1]
-n2(problem::Problem, n1, i) = problem.grids[n1][i,2]
-c2(problem::Problem, n1, i) = problem.grids[n1][i,3]
 
 Base.size(problem::Problem, n1) = size(problem.grids[n1],1)
 Base.size(problem::Problem) = [size(problem, n1) for n1 = problem.n1values] |> sum
-
 
 
 
@@ -137,7 +132,7 @@ function build_model(problem::Problem; verbose::Bool = true)
     if verbose
         prog = ProgressMeter.Progress(
             1 + length(n1values) + 3,
-            desc      = "Building IP Problem: ",
+            desc      = "Building ILP Problem: ",
             dt        = 0.1,
             barglyphs = ProgressMeter.BarGlyphs("[=> ]"),
             barlen    = 20,
@@ -162,7 +157,7 @@ function build_model(problem::Problem; verbose::Bool = true)
             sum( ind[(n1_, x1, n2, c2)] for (x1, n2, c2) in grid(problem, n1_) )
             <= 5*problem.nmax*n1_selected[n1_]
         )
-        for x1_ in x1(problem, n1_)
+        for x1_ in collect(problem.x1min:n1_)
             # make it a function in x1
             @constraint(m,
                 sum( ind[(n1_, x1_, n2, c2)] for (x1, n2, c2) in grid(problem, n1_) if x1 == x1_ )
@@ -199,26 +194,28 @@ function build_model(problem::Problem; verbose::Bool = true)
                 @constraint(m, ind[(n1_, x1_ + 1, 0, -Inf)] >= ind[(n1_, x1_, 0, -Inf)] )
             end
         end
+        # implement conditional error constraints
+
+
     end
     update_progress("adding type one error rate constraint")
     @constraint(m,
-        sum( integrand_x1(problem.toer, x1, n1, n2, c2) * ind[(n1, x1, n2, c2)]
+        sum( integrand_x1(problem.toer, x1, n1, n2, c2; partial_stage_one = problem.partial) * ind[(n1, x1, n2, c2)]
             for (n1, x1, n2, c2) in grid(problem)
         ) <= problem.toer.α
     )
     update_progress("adding power constraint")
     @constraint(m,
-        sum( integrand_x1(problem.power, x1, n1, n2, c2) * ind[(n1, x1, n2, c2)]
+        sum( integrand_x1(problem.power, x1, n1, n2, c2; partial_stage_one = problem.partial) * ind[(n1, x1, n2, c2)]
             for (n1, x1, n2, c2) in grid(problem)
         ) >= 1 - problem.power.β
     )
     update_progress("adding objective")
-    add!((m, ind), problem.objective, problem)
+    add!((m, ind), problem.objective, problem; partial = problem.partial)
     update_progress("ready to start ILP solver ")
     if verbose; ProgressMeter.next!(prog) end
     return m, ind, n1_selected
 end
-
 
 
 function optimise!(m, verbosity::Integer, timelimit::Integer)
@@ -231,21 +228,21 @@ function optimise!(m, verbosity::Integer, timelimit::Integer)
 end
 
 
-
 function extract_solution(problem::Problem, ind, n1_selected)
 
     vals = value.(ind)
     # find n1
+    x1obs = problem.partial[1]
     n1_ = problem.n1values[findfirst(value.(n1_selected).data .== 1)]
-    c2_res = repeat([Inf], n1_ + 1)
-    n2_res = zeros(n1_ + 1)
+    c2_res = repeat([Inf], n1_ + 1 - x1obs)
+    n2_res = zeros(n1_ + 1 - x1obs)
     for (x1, n2, c2) in grid(problem, n1_)
         if vals[(n1_, x1, n2, c2)] == 1
-            c2_res[x1 + 1] = c2
-            n2_res[x1 + 1] = n2
+            c2_res[x1 + 1 - x1obs] = c2
+            n2_res[x1 + 1 - x1obs] = n2
         end
     end
-    return Design(n2_res, c2_res)
+    return collect(x1obs:n1_), n2_res, c2_res
 end
 
 
@@ -270,16 +267,21 @@ function optimise(problem::Problem; verbosity = 3, timelimit = 180)
         optimise!(m, verbosity, timelimit)
     end
     _, info["solution extraction time [s]"], _, _, _ = @timed begin
-        design = extract_solution(problem, ind, n1_selected)
+        xx1, nn2, cc2 = extract_solution(problem, ind, n1_selected)
     end
     info["total time [s]"] = sum([val for (key, val) in info])
     info["number of variables"] = size(problem)
-    pnull   = problem.toer.score.pnull
-    α       = problem.toer.α
-    mlecomp = mlecompatible(design, pnull, α)
-    if !mlecomp["compatible"] & (verbosity > 0)
-        @warn @sprintf "design is not compatible with MLE-ordering, incompatibility degree is %i/%i" mlecomp["incompatibility degree"] size(mlecomp["details"], 1)
+    if problem.partial[2] > 0
+        return xx1, nn2, cc2, info
+    else
+        design  = Design(nn2, cc2)
+        pnull   = problem.toer.score.pnull
+        α       = problem.toer.α
+        mlecomp = mlecompatible(design, pnull, α)
+        if !mlecomp["compatible"] & (verbosity > 0)
+            @warn @sprintf "design is not compatible with MLE-ordering, incompatibility degree is %i/%i" mlecomp["incompatibility degree"] size(mlecomp["details"], 1)
+        end
+        info["MLE-compatible"] = mlecomp
+        return OptimalDesign(design, problem, info)
     end
-    info["MLE-compatible"] = mlecomp
-    return OptimalDesign(design, problem, info)
 end

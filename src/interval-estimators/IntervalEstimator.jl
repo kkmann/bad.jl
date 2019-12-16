@@ -57,11 +57,11 @@ end
 
 function coverage_probability(estimator::IntervalEstimator, p::Real)
 
-    XX    = estimator.XX
-    pmf   = pdf.(XX[:,1], XX[:,2], estimator.design, p)
-    lower = sum(pmf[estimator.bounds[:,1] .<= p])
-    upper = sum(pmf[estimator.bounds[:,2] .>= p])
-    joint = sum(pmf[(estimator.bounds[:,1] .<= p) .& (estimator.bounds[:,2] .>= p)])
+    x1, x2 = estimator.XX[:,1], estimator.XX[:,2]
+    pmff   = pmf.(x2, n2.(estimator.design, x1), p) .* pmf.(x1, n1(estimator.design), p)
+    lower  = sum(pmff[estimator.bounds[:,1] .<= p])
+    upper  = sum(pmff[estimator.bounds[:,2] .>= p])
+    joint  = sum(pmff[(estimator.bounds[:,1] .<= p) .& (estimator.bounds[:,2] .>= p)])
     return [lower, joint, upper]
 end
 
@@ -73,6 +73,7 @@ end
 
 function mean_width(estimator::IntervalEstimator, p::Real)
 
-    pmf   = pdf.(estimator.XX[:,1], estimator.XX[:,2], estimator.design, p)
-    return sum( (estimator.bounds[:,2] .- estimator.bounds[:,1]) .* pmf )
+    x1, x2 = estimator.XX[:,1], estimator.XX[:,2]
+    pmff   = pmf.(x2, n2.(estimator.design, x1), p) .* pmf.(x1, n1(estimator.design), p)
+    return sum( (estimator.bounds[:,2] .- estimator.bounds[:,1]) .* pmff )
 end

@@ -2,9 +2,6 @@ using Test, bad; import Plots
 
 
 
-@info "testing utility functions..."
-@time include("test_util.jl")
-
 @info "testing probability mass function..."
 @time include("test_pmf.jl")
 

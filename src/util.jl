@@ -1,17 +1,17 @@
-function dbinom(x::TI, n::TI, p::TR) where {TI<:Integer,TR<:Real}
-    return (0 <= x <= n) ? gamma(n + 1)/gamma(x + 1)/gamma(n - x + 1)*(1 - p)^(n - x)*p^x : 0.0
-end
-function dbinom(x::TI, n::TI, prior::TP) where {TI<:Integer,TP<:Prior}
-    expectation(p -> dbinom(x, n, p), prior)
-end
-
-function pbinom(x::Real, n::Real, p::Real)
-    n < 0  ? (return NaN) : nothing
-    x < 0  ? (return 0.0) : nothing
-    x >= n ? (return 1.0) : nothing
-    return beta_inc(n - x, x + 1, 1 - p, p)[1]
-end
-pbinom(x::Real, n::Real, p::Prior) = expectation(p -> pbinom(x, n, p), p)
+# function dbinom(x::TI, n::TI, p::TR) where {TI<:Integer,TR<:Real}
+#     return (0 <= x <= n) ? gamma(n + 1)/gamma(x + 1)/gamma(n - x + 1)*(1 - p)^(n - x)*p^x : 0.0
+# end
+# function dbinom(x::TI, n::TI, prior::TP) where {TI<:Integer,TP<:Prior}
+#     expectation(p -> dbinom(x, n, p), prior)
+# end
+#
+# function pbinom(x::Real, n::Real, p::Real)
+#     n < 0  ? (return NaN) : nothing
+#     x < 0  ? (return 0.0) : nothing
+#     x >= n ? (return 1.0) : nothing
+#     return beta_inc(n - x, x + 1, 1 - p, p)[1]
+# end
+# pbinom(x::Real, n::Real, p::Prior) = expectation(p -> pbinom(x, n, p), p)
 
 function dbeta(p::Real, a::Real, b::Real)
     any((a, b) .<= 0) ? (return NaN) : nothing
@@ -48,8 +48,4 @@ function one_stage_sample_size(p0::Real, α::Real, p1::Real, β::Real)
     z_1_β   = Distributions.quantile(Distributions.Normal(), 1 - β)
     napprox = p1*(1 - p1)*( (z_1_α + z_1_β) / (p1 - p0) )^2
     return Int(ceil(napprox))
-end
-
-function fisher_information_integrand(p::TR, x::TI, n::TI)::TR where {TR<:Real,TI<:Integer}
-    ( x/p - (n - x)/(1 - p) )^2
 end

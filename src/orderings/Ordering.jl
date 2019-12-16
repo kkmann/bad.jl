@@ -45,7 +45,10 @@ function p_value(x1::TI, x2::TI, p0::TR, ordering::TO, design::TD; orientation =
 
     XX   = sample_space(design)
     inds = more_extreme.(XX[:,1], XX[:,2], x1, x2, ordering, design, orientation = orientation)
-    return min(1, max(0, sum(pdf.(XX[:,1], XX[:,2], design, p0)[inds]) ) )
+    return min(1, max(0, sum(
+        pmf.(XX[inds,2], n2.(design, XX[inds,1]), p0) .*
+        pmf.(XX[inds,1], n1(design), p0)
+    )  ) )
 end
 
 function p_value(x1::TI, x2::TI, p0::TR, estimator::TE, design::TD; orientation::Symbol = :superiority) where {TI<:Integer,TR<:Real,TE<:Estimator,TD<:AbstractDesign}

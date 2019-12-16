@@ -21,7 +21,7 @@ ci = ClopperPearsonInterval(ordering, design, α)
 ci([0], [0])
 coverage_probability(ci, [.5])
 mean_width(ci, .3)
-@test compatible(ci, design, pnull)["compatible"]
+@test !compatible(ci, design, pnull)["compatible"]
 
 
 
@@ -41,3 +41,12 @@ jci(0, 0)
 coverage_probability(jci, .5)
 mean_width(jci, .3)
 @test compatible(jci, design, pnull)["compatible"]
+
+
+
+cmle  = CompatibleMLE(design)
+cci = ClopperPearsonInterval(EstimatorOrdering(cmle), design, α)
+cci([0], [0])
+coverage_probability(cci, [.5])
+mean_width(cci, .3)
+@test compatible(cci, design, pnull)["compatible"]

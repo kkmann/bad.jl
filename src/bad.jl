@@ -18,7 +18,7 @@ import Roots
 using JuMP, GLPK, Ipopt
 GLPK.jl_set_preemptive_check(false) # faster!
 
-import DataFrames, Gadfly
+import DataFrames
 
 
 
@@ -33,8 +33,9 @@ export valid
 include("designs.jl")
 export Design, OptimalDesign,
     n1, n2, n, c2,
-    early_futility, early_efficacy, continuation_region, futility_region, efficacy_region, early_stop_region,
-    as_table, reject, sample_space, plot
+    early_futility, early_efficacy, continuation_region, futility_region,
+    efficacy_region, early_stop_region,
+    as_table, reject, sample_space
 
 
 
@@ -53,7 +54,7 @@ export PointMass
 
 
 include("pmf.jl")
-export pmf, pmf_x2_given_x1
+export pmf, pmf_x1, pmf_x2_given_x1, cdf, cdf_x1, cdf_x2_given_x1
 
 
 
@@ -101,9 +102,9 @@ export update!,
     CompositeScore
 
 
-
 include("Problem.jl")
 export Problem, optimise
+
 
 include("objectives/Objective.jl")
 export ScoreObjective, minimise, maximise
@@ -113,6 +114,9 @@ export MiniMaxSampleSize
 
 include("constraints.jl")
 export PowerConstraint, TypeOneErrorRateConstraint, subject_to
+
+
+
 
 
 

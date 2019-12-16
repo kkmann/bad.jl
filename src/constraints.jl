@@ -8,7 +8,7 @@ Base.show(io::IO, ::MIME"application/prs.juno.inline", cnstr::Constraint) = prin
 
 Base.string(cnstr::Constraint) = @sprintf "ToDo: implement Base.string for %s" typeof(cnstr)
 
-integrand_x1(cnstr::Constraint, args...) = integrand_x1(cnstr.score, args...)
+integrand_x1(cnstr::Constraint, args...; kwargs...) = integrand_x1(cnstr.score, args...; kwargs...)
 
 update!(cnstr::Constraint, x::TI, n::TI) where {TS<:Score,TI<:Integer} = update!(cnstr.score, x, n)
 
