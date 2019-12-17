@@ -20,21 +20,33 @@ problem = Problem(
     subject_to(power, β)
 )
 
-@time design = optimise(problem; verbosity = 3)
+design = optimise(problem; verbosity = 0)
 power(design), mtoer(design), ess(design)
 
-as_table(design)
-design.n2
-
-
-mtoer(design, 5; partial_stage_two = (2, 5))
-
-
-α_new = mtoer(design; partial_stage_one = (0, 0) )
-β_new = 1 - power(design; partial_stage_one = (0, 0) )
-
-obs = 5, 10
+# test invariance
+obs = 0, 0
 α_new = mtoer(design; partial_stage_one = obs )
 β_new = 1 - power(design; partial_stage_one = obs )
 
-adapt(design, prior, obs)
+adesign = adapt(design, prior, obs)
+@test all(adesign.n2 .== design.n2)
+@test all(adesign.c2 .== design.c2)
+@test power(design) ≈ power(adesign; partial_stage_one = obs)
+@test mtoer(design) ≈ mtoer(adesign; partial_stage_one = obs)
+@test ess(design)   ≈ ess(adesign; partial_stage_one = obs)
+
+obs   = 5, 10
+α_new = mtoer(design; partial_stage_one = obs )
+β_new = 1 - power(design; partial_stage_one = obs )
+adesign = adapt(design, prior, obs)
+
+@test power(adesign; partial_stage_one = obs) >= 1 - β_new
+@test mtoer(adesign; partial_stage_one = obs) <= α_new
+@test ess(adesign) >= ess(design)
+@test ess(adesign; partial_stage_one = obs) >= ess(design; partial_stage_one = obs)
+
+
+prior2 = update(prior, 6, 10)
+adesign = adapt(design, prior2, obs)
+@test Power(prior2 >= pmcr)(adesign; partial_stage_one = obs) >= 1 - β_new
+@test TypeOneErrorRate(prior2 | pnull)(adesign; partial_stage_one = obs) <= α_new

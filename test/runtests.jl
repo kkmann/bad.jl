@@ -29,4 +29,7 @@ using Test, bad; import Plots
 @info "testing expected utility..."
 @time include("test_ExpectedUtility.jl")
 
+@info "testing design adaptations..."
+@time include("test_adapt.jl")
+
 @info "... done - stay vigilent!"
