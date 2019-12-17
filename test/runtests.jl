@@ -11,7 +11,7 @@ using Test, bad; import Plots
 @info "testing scores..."
 @time include("test_scores.jl")
 
-@info "testing point estimatos..."
+@info "testing point estimators..."
 @time include("test_point-estimators.jl")
 
 @info "testing interval estimators..."

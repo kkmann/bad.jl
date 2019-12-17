@@ -1,44 +1,46 @@
+mutable struct Parameters
+    n1fctrs::Tuple{Real,Real}
+    n2ton1fctrs::Tuple{Real,Real}
+end
+
 struct Problem
     grids
+    n1fctrs
     n1values
-    nmax
     n2mincontinueabs
-    n2mincontinuereln1
-    n2maxcontinuereln1
+    n2ton1fctrs
+    maxmultipleonestage
+    nmax
+    curtail_stage_one_buffer
     x1min
+    partial
     type
     objective
     power
     toer
-    curtail_stage_one_fct
-    partial
 
     function Problem(
         objective,
         toer,
         power;
+        type                  = :TwoStage,
         partial::Tuple{TI,TI} = (0, 0),
         maxmultipleonestage   = 2.,
         α                     = toer.α,
         β                     = power.β,
         pnull                 = mean(toer.score.prior),
         palt                  = mean(power.score.prior),
-        nmax                  = min(150, Int(ceil(
-            maxmultipleonestage*one_stage_sample_size(pnull, α, palt, β)
-        ))),
-        n1minfctr             = .25,
-        n1min                 = max(
-            partial[2],
-            Int(ceil(n1minfctr*one_stage_sample_size(pnull, α, palt, β)))
-        ),
-        n1maxfctr             = .51,
-        n1max                 = Int(ceil(n1maxfctr*nmax)),
+        nmax                  = min(
+                150,
+                maxmultipleonestage*one_stage_sample_size(pnull, α, palt, β)
+            ) |> ceil |> Int,
+        n1fctrs::Tuple{Real,Real} = (.25/maxmultipleonestage, .51),
+        n1min                 = max(partial[2], n1fctrs[1] * nmax) |> ceil |> Int,
+        n1max                 = n1fctrs[2] * nmax |> ceil |> Int,
         n1values              = collect(n1min:n1max),
         n2mincontinueabs      = 5,
-        n2mincontinuereln1    = 1.1,
-        n2maxcontinuereln1    = 4.,
-        type                  = :TwoStage,
-        curtail_stage_one_fct = .1
+        n2ton1fctrs::Tuple{Real,Real} = (1.1, 4.0),
+        curtail_stage_one_buffer = 2
     ) where {TI<:Integer}
 
         @assert 0 <= partial[1] <= partial[2]
@@ -50,11 +52,11 @@ struct Problem
         function n2(n1, x1)
 
             if type == :OneStage; return [0] end
-            n2min = max(n2mincontinueabs, Int(ceil(n1*n2mincontinuereln1)) - n1)
-            n2max = min(nmax - n1, Int(floor(n1*(n2maxcontinuereln1))) - n1)
+            n2min = max(n2mincontinueabs, n1*(n2ton1fctrs[1] - 1)) |> ceil |> Int
+            n2max = min(nmax - n1, n1*(n2ton1fctrs[2] - 1)) |> floor |> Int
             # curtail if error rates are too low in stage one
-            if (1 - cdf(x1 - 1, n1, toer.score.prior; partial = partial) <= curtail_stage_one_fct*α) |
-                (cdf(x1 + 1, n1, power.score.prior; partial = partial) <= curtail_stage_one_fct*β)
+            if (1 - cdf(x1 - curtail_stage_one_buffer, n1, toer.score.prior; partial = partial) <= α) |
+                (cdf(x1 + curtail_stage_one_buffer, n1, power.score.prior; partial = partial) <= β)
                 return [0]
             end
             # add 0 for early stopping
@@ -94,16 +96,19 @@ struct Problem
 
         return new(
             grids,
+            n1fctrs,
             sort(n1values),
+            n2mincontinueabs,
+            n2ton1fctrs,
+            maxmultipleonestage,
             nmax,
-            n2mincontinueabs, n2mincontinuereln1, n2maxcontinuereln1,
+            curtail_stage_one_buffer,
             x1min,
+            partial,
             type,
             objective,
             power,
-            toer,
-            curtail_stage_one_fct,
-            partial
+            toer
         )
     end
 
@@ -284,4 +289,77 @@ function optimise(problem::Problem; verbosity = 3, timelimit = 180)
         info["MLE-compatible"] = mlecomp
         return OptimalDesign(design, problem, info)
     end
+end
+
+
+
+function adapt(design::OptimalDesign, prior::TP, partial::Tuple{TI,TI};
+        α         = design.problem.toer.score(design, partial_stage_one = partial),
+        β         = 1 - design.problem.power.score(design, partial_stage_one = partial),
+        verbosity = 0,
+        timelimit = 300
+    ) where {TP<:Prior,TI<:Integer}
+
+        objective   = update(design.problem.objective, prior)
+        toer        = design.problem.toer
+        toer.α      = α
+        power       = update(design.problem.power, prior)
+        power.β     = β
+        pnull, palt = mean(toer.score.prior), mean(power.score.prior)
+
+        n1fctrs     = design.problem.n1fctrs
+        n2mincontinueabs = design.problem.n2mincontinueabs
+        n2ton1fctrs = design.problem.n2ton1fctrs
+        maxmultipleonestage = design.problem.maxmultipleonestage
+        curtail_stage_one_buffer = design.problem.curtail_stage_one_buffer
+        type = design.problem.type
+
+        nmax = max(
+            min(
+                150,
+                maxmultipleonestage * one_stage_sample_size(pnull, α, palt, β)
+            ) |> ceil |> Int,
+            design.problem.nmax
+        )
+        n1min = max(partial[2], n1fctrs[1] * nmax) |> floor |> Int
+        n1max = n1fctrs[2] * nmax |> ceil |> Int
+
+        adaptation_problem = Problem(
+            objective,
+            toer,
+            power;
+            partial               = partial,
+            maxmultipleonestage   = maxmultipleonestage,
+            α                     = α,
+            β                     = β,
+            pnull                 = pnull,
+            palt                  = palt,
+            nmax                  = nmax,
+            n1fctrs               = n1fctrs,
+            n1min                 = n1min,
+            n1max                 = n1max,
+            n1values              = collect(n1min:n1max),
+            n2mincontinueabs      = n2mincontinueabs,
+            n2ton1fctrs           = n2ton1fctrs,
+            curtail_stage_one_buffer = curtail_stage_one_buffer,
+            type                  = design.problem.type
+        )
+
+        info = Dict{String,Any}()
+        _, info["model build time [s]"], _, _, _ = @timed begin
+            m, ind, n1_selected = build_model(adaptation_problem; verbose = verbosity > 0)
+        end
+        _, info["model ILP solution time [s]"], _, _, _ = @timed begin
+            optimise!(m, verbosity, timelimit)
+        end
+        _, info["solution extraction time [s]"], _, _, _ = @timed begin
+            xx1, nn2, cc2 = extract_solution(adaptation_problem, ind, n1_selected)
+        end
+        info["total time [s]"] = sum([val for (key, val) in info])
+        info["number of variables"] = size(adaptation_problem)
+        adapted_design = Design(
+            vcat(design.n2[1:partial[1]], nn2),
+            vcat(design.c2[1:partial[1]], cc2)
+        )
+        return adapted_design
 end

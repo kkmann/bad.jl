@@ -19,6 +19,9 @@ Base.string(score::Score) = @sprintf "ToDo: implement Base.string for %s" typeof
 # update the prior of a score
 update!(score::TS, x::TI, n::TI) where {TS<:Score,TI<:Integer} = score.prior = update(score.prior, x, n)
 
+function update(score::Score, prior::Prior)
+    error("not implemented")
+end
 
 
 function evaluate(score::TS, x1::TI, n1::TI, x2::TI, n2::TI, c2::TR, p::TR)::TR where {TI<:Integer,TR<:Real,TS<:Score}
@@ -115,7 +118,7 @@ function evaluate(score::SampleSize, x1::TI, n1::TI, x2::TI, n2::TI, c2::TR, p::
 end
 # no custom score_integrand necessary - fallback to default
 
-
+update(score::SampleSize, prior::Prior) = SampleSize(prior)
 
 
 
@@ -126,6 +129,8 @@ mutable struct Power{TP<:Prior,TR<:Real} <: Score
 end
 Power(prior::Prior; pmcr::Real = bounds(prior)[1]) = Power{typeof(prior),typeof(pmcr)}(prior, pmcr)
 Base.string(score::Power) = @sprintf "Power<%s>" string(score.prior)
+
+update(score::Power, prior::Prior) = Power(prior; pmcr = score.pmcr)
 
 function evaluate(score::Power, x1::TI, n1::TI, x2::TI, n2::TI, c2::TR, p::TR)::TR where {TI<:Integer,TR<:Real}
     (p >= score.pmcr) ? (x2 > c2) : 0.0
@@ -154,6 +159,8 @@ mutable struct TypeOneErrorRate{TP<:Prior,TR<:Real} <: Score
 end
 TypeOneErrorRate(prior::Prior; pnull::Real = bounds(prior)[2]) = TypeOneErrorRate{typeof(prior),typeof(pnull)}(prior, pnull)
 Base.string(score::TypeOneErrorRate) = @sprintf "TypeOneErrorRate<%s>" string(score.prior)
+
+update(score::TypeOneErrorRate, prior::Prior) = TypeOneErrorRate(prior; pnull = score.pnull)
 
 function evaluate(score::TypeOneErrorRate, x1::TI, n1::TI, x2::TI, n2::TI, c2::TR, p::TR)::TR where {TI<:Integer,TR<:Real}
     (p <= score.pnull) ? (x2 > c2) : 0.0
@@ -199,6 +206,12 @@ function -(score1::T1, score2::T2) where {T1,T2<:Score}
 end
 function update!(score::CompositeScore, x::TI, n::TI) where {TS<:Score,TI<:Integer}
     map(component -> update!(component, x, n), score.components)
+end
+
+function update(score::CompositeScore, prior::Prior)
+    score = deepcopy(score)
+    score.components = map(component -> update(component, prior), score.components)
+    return score
 end
 
 evaluate(score::CompositeScore, x1::TI, n1::TI, x2::TI, n2::TI, c2::TR, p::TR) where {TI<:Integer,TR<:Real} = sum( score.ω .* evaluate.(score.components, x1, n1, x2, n2, c2, p) )

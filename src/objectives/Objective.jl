@@ -8,7 +8,7 @@ Base.string(obj::Objective) = @sprintf "ToDo: implement Base.string for %s" type
 
 
 mutable struct ExpectedScoreObjective <: Objective
-    score
+    score::Score
     orientation::Symbol
     function ExpectedScoreObjective(score, orientation)
         @assert (orientation .== (:minimise, :maximise)) |> any "orientation must be ':minimise' or ':maximise'"
@@ -33,6 +33,11 @@ integrand_x1(obj::ExpectedScoreObjective, args...; kwargs...) = integrand_x1(obj
 
 update!(obj::ExpectedScoreObjective, x::TI, n::TI) where {TS<:Score,TI<:Integer} = update!(obj.score, x, n)
 
+function update(obj::ExpectedScoreObjective, prior::Prior)
+    obj       = deepcopy(obj)
+    obj.score = update(obj.score, prior)
+    return obj
+end
 
 function add!(
         JuMP_model_and_indicator_variables::Tuple,

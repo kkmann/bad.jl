@@ -9,7 +9,11 @@ function (objective::MiniMaxSampleSize)(design::AbstractDesign)
     return (1 - objective.λ)*maximum(n(design)) + λ*ess(design)
 end
 
-
+function update(obj::MiniMaxSampleSize, prior::Prior)
+    obj = deepcopy(obj)
+    obj.prior = prior
+    return obj
+end
 
 function add!(
         JuMP_model_and_indicator_variables::Tuple,

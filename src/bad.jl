@@ -103,7 +103,7 @@ export update!,
 
 
 include("Problem.jl")
-export Problem, optimise
+export Problem, optimise, adapt
 
 
 include("objectives/Objective.jl")

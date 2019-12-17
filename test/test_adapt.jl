@@ -20,7 +20,7 @@ problem = Problem(
     subject_to(power, β)
 )
 
-design = optimise(problem; verbosity = 0)
+@time design = optimise(problem; verbosity = 3)
 power(design), mtoer(design), ess(design)
 
 as_table(design)
@@ -37,13 +37,4 @@ obs = 5, 10
 α_new = mtoer(design; partial_stage_one = obs )
 β_new = 1 - power(design; partial_stage_one = obs )
 
-problem2 = Problem(
-    minimise(ess),
-    subject_to(mtoer, α_new),
-    subject_to(power, β_new);
-    nmax = 100,
-    n1values = collect(10:25),
-    partial = obs
-)
-
-optimise(problem2)
+adapt(design, prior, obs)

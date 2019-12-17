@@ -12,14 +12,19 @@ integrand_x1(cnstr::Constraint, args...; kwargs...) = integrand_x1(cnstr.score, 
 
 update!(cnstr::Constraint, x::TI, n::TI) where {TS<:Score,TI<:Integer} = update!(cnstr.score, x, n)
 
+function update(cnstr::Constraint, prior::Prior)
+    cnstr       = deepcopy(cnstr)
+    cnstr.score = update(cnstr.score, prior)
+    return cnstr
+end
 
 
 mutable struct PowerConstraint <: Constraint
-    score
-    β
-    conditional
+    score::Power
+    β::Real
+    conditional::Tuple{Real,Real}
 end
-function subject_to(power::TP, β::TR, conditional::Vector{TR} = [.5, .99]) where {TR<:Real,TP<:Power}
+function subject_to(power::Power, β::Real, conditional::Tuple{Real,Real} = (.5, .99) )
     PowerConstraint(power, β, conditional)
 end
 
@@ -31,12 +36,14 @@ end
 
 
 
+
+
 mutable struct TypeOneErrorRateConstraint <: Constraint
-    score
-    α
-    conditional
+    score::TypeOneErrorRate
+    α::Real
+    conditional::Tuple{Real,Real}
 end
-function subject_to(toer::TP, α::TR, conditional::Vector{TR} = [α/5, 5*α]) where {TR<:Real,TP<:TypeOneErrorRate}
+function subject_to(toer::TypeOneErrorRate, α::Real, conditional::Tuple{Real,Real} = (α/5, 5*α) )
     TypeOneErrorRateConstraint(toer, α, conditional)
 end
 

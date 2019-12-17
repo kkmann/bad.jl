@@ -29,15 +29,14 @@ essnull      = SampleSize(p | pnull)
 
 problem = Problem(
         MiniMaxSampleSize(.2, p | pnull),
-        subject_to(TypeOneErrorRate(p | pnull), α, [-.1, .5]),
-        subject_to(Power(p | palt), β, [.5, 1.1]);
+        subject_to(TypeOneErrorRate(p | pnull), α, (-.1, .5) ),
+        subject_to(Power(p | palt), β, (.5, 1.1) );
         # again, just removing as many as possible heuristics from the marginal fesible space
         n1values = collect(10:35),
         nmax = 35,
         n2mincontinueabs = 5,
-        n2mincontinuereln1 = .9,
-        n2maxcontinuereln1 = 5.,
-        curtail_stage_one_fct = .01
+        n2ton1fctrs      = (.9, 5.0),
+        curtail_stage_one_buffer = 5
     )
 size(problem)
 design = optimise(problem; verbosity = 0)
