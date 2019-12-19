@@ -6,9 +6,9 @@ PointMass(atom::T) where{T<:Real} = PointMass{T}(atom)
 
 bounds(prior::PointMass) = [prior.atom, prior.atom]
 
-pdf(prior::PointMass{T}, p::T) where{T<:Real} = (p == prior.atom) ? Inf : 0
+pdf(p::T, prior::PointMass{T}) where{T<:Real} = (p == prior.atom) ? Inf : 0
 
-cdf(prior::PointMass{T}, p::T) where{T<:Real} = (p >= prior.atom) ? 1 : 0
+cdf(p::T, prior::PointMass{T}) where{T<:Real} = (p >= prior.atom) ? 1 : 0
 
 function condition(prior::PointMass{T}; low::T = prior.atom, high::T = prior.atom) where {T<:Real}
     (low <= prior.atom <= high) ? (return prior) : error("conditioning only well-defined when probability atom is contained in intervsl")

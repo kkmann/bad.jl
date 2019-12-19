@@ -8,9 +8,11 @@ p           = Beta(1, 1) # uniform prior, only used to make conditioning valid f
 
 # check under expected sample sise
 problem = Problem(
-    minimise(SampleSize(p | palt)),
-    subject_to(TypeOneErrorRate(p | pnull), α),
-    subject_to(Power(p | palt), β),
+    minimise(
+        SampleSize(p | palt)
+    ),
+    Power(p | pnull) <= α,
+    Power(p | palt)  >= 1 - β,
     # make search space large enough to incorporate single-stage solution
     nmax                    = n_required + 10,
     n1max                   = n_required + 1,
@@ -26,8 +28,8 @@ design = optimise(problem; verbosity = 0)
 # check under minimax sample size
 problem = Problem(
     MiniMaxSampleSize(.33, p),
-    subject_to(TypeOneErrorRate(p | pnull), α),
-    subject_to(Power(p | palt), β),
+    Power(p | pnull) <= α,
+    Power(p | palt)  >= 1 - β,
     # make search space large enough to incorporate single-stage solution
     nmax                    = n_required + 10,
     n1max                   = n_required + 1,

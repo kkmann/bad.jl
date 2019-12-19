@@ -8,18 +8,17 @@ prior2 = update(prior1, 4, 10)      # update with phase I data
 prior3 = .8*prior2 + .2*Beta(1, 1)  # robustify
 prior  = prior3 <= min(2*pmcr, 1.0) # restrict to plausible range
 
-mtoer  = TypeOneErrorRate(prior | pnull)
+mtoer = Power(prior  | pnull)
 power = Power(prior >= pmcr)
 ess   = SampleSize(prior)
 
 # first consider the 'standard design'
 α, β = .05, .2
 problem = Problem(
-    minimise(ess),
-    subject_to(mtoer, α),
-    subject_to(power, β)
-)
-
+        minimise(ess),
+        mtoer <= α,
+        power >= 1 - β
+    )
 design = optimise(problem; verbosity = 0)
 power(design), mtoer(design), ess(design)
 
@@ -46,7 +45,7 @@ adesign = adapt(design, prior, obs)
 @test ess(adesign; partial_stage_one = obs) >= ess(design; partial_stage_one = obs)
 
 
-prior2 = update(prior, 6, 10)
+prior2  = update(prior, 6, 10)
 adesign = adapt(design, prior2, obs)
 @test Power(prior2 >= pmcr)(adesign; partial_stage_one = obs) >= 1 - β_new
-@test TypeOneErrorRate(prior2 | pnull)(adesign; partial_stage_one = obs) <= α_new
+@test Power(prior2 | pnull)(adesign; partial_stage_one = obs) <= α_new

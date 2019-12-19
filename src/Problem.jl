@@ -14,6 +14,7 @@ struct Problem
     curtail_stage_one_buffer
     x1min
     partial
+    unimodal
     type
     objective
     power
@@ -24,6 +25,7 @@ struct Problem
         toer,
         power;
         type                  = :TwoStage,
+        unimodal              = false,
         partial::Tuple{TI,TI} = (0, 0),
         maxmultipleonestage   = 2.,
         α                     = toer.α,
@@ -34,7 +36,7 @@ struct Problem
                 150,
                 maxmultipleonestage*one_stage_sample_size(pnull, α, palt, β)
             ) |> ceil |> Int,
-        n1fctrs::Tuple{Real,Real} = (.25/maxmultipleonestage, .51),
+        n1fctrs::Tuple{Real,Real} = (.2/maxmultipleonestage, .51),
         n1min                 = max(partial[2], n1fctrs[1] * nmax) |> ceil |> Int,
         n1max                 = n1fctrs[2] * nmax |> ceil |> Int,
         n1values              = collect(n1min:n1max),
@@ -105,6 +107,7 @@ struct Problem
             curtail_stage_one_buffer,
             x1min,
             partial,
+            unimodal,
             type,
             objective,
             power,
@@ -154,6 +157,15 @@ function build_model(problem::Problem; verbose::Bool = true)
     # auxiliary variables: n1_selected[n1] == 1 iff n1 = n1
     @variable(m, n1_selected[n1 in n1values], Bin)
     @constraint(m, sum(n1_selected[n1] for n1 in n1values) == 1)
+    if (problem.type == :TwoStage) & problem.unimodal
+        @variable(m, is_mode[n1 in n1values, x1 in collect(problem.x1min:n1)], Bin)
+        for n1_ in n1values
+            # at least one mode (can be on boundary as well!)
+            @constraint(m,
+              sum( is_mode[n1_, x1] for x1 in collect(problem.x1min:n1_) ) >= 1
+            )
+        end
+    end
     # implement all constraints conditional on n1
     for n1_ in n1values
         update_progress(@sprintf "building constraints for n1=%i" n1_)
@@ -198,10 +210,26 @@ function build_model(problem::Problem; verbose::Bool = true)
             if x1_ < n1_
                 @constraint(m, ind[(n1_, x1_ + 1, 0, -Inf)] >= ind[(n1_, x1_, 0, -Inf)] )
             end
+            # optional unimodality
+            if (problem.type == :TwoStage) & problem.unimodal
+                for xx1_ in (problem.x1min + 1):x1_
+                    # for a mode at x1_, n must be increasing before ...
+                    @constraint(m,
+                           sum( n2 * ind[(n1_, xx1_, n2, c2)] for (x1, n2, c2) in grid(problem, n1_) if (x1 == xx1_) )
+                         - sum( n2 * ind[(n1_, xx1_ - 1, n2, c2)] for (x1, n2, c2) in grid(problem, n1_) if (x1 == xx1_ - 1) )
+                        >= 10*problem.nmax*(is_mode[n1_, x1_] - 1)
+                    )
+                end
+                for xx1_ in (x1_ + 1):n1_
+                    # ... and decreasing after
+                    @constraint(m,
+                           sum( n2 * ind[(n1_, xx1_, n2, c2)] for (x1, n2, c2) in grid(problem, n1_) if (x1 == xx1_) )
+                         - sum( n2 * ind[(n1_, xx1_ - 1, n2, c2)] for (x1, n2, c2) in grid(problem, n1_) if (x1 == xx1_ - 1) )
+                        <= -10*problem.nmax*(is_mode[n1_, x1_] - 1)
+                    )
+                end
+            end
         end
-        # implement conditional error constraints
-
-
     end
     update_progress("adding type one error rate constraint")
     @constraint(m,
@@ -280,7 +308,7 @@ function optimise(problem::Problem; verbosity = 3, timelimit = 180)
         return xx1, nn2, cc2, info
     else
         design  = Design(nn2, cc2)
-        pnull   = problem.toer.score.pnull
+        pnull   = problem.toer.score.bounds[2]
         α       = problem.toer.α
         mlecomp = mlecompatible(design, pnull, α)
         if !mlecomp["compatible"] & (verbosity > 0)
@@ -313,6 +341,7 @@ function adapt(design::OptimalDesign, prior::TP, partial::Tuple{TI,TI};
         maxmultipleonestage = design.problem.maxmultipleonestage
         curtail_stage_one_buffer = design.problem.curtail_stage_one_buffer
         type = design.problem.type
+        unimodal = design.problem.unimodal
 
         nmax = max(
             min(
@@ -342,7 +371,8 @@ function adapt(design::OptimalDesign, prior::TP, partial::Tuple{TI,TI};
             n2mincontinueabs      = n2mincontinueabs,
             n2ton1fctrs           = n2ton1fctrs,
             curtail_stage_one_buffer = curtail_stage_one_buffer,
-            type                  = design.problem.type
+            type                  = design.problem.type,
+            unimodal              = unimodal
         )
 
         info = Dict{String,Any}()

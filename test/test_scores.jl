@@ -1,16 +1,20 @@
-using Test, bad; import Plots
+using Test, bad; import Plots, Distributions
 
 
 pnull = .25
 palt  = .4
-p     = Beta(1, 1)
+p     = Beta(5, 7)
 α, β  = .05, .2
 problem = Problem(
-    minimise(SampleSize(p | palt)),
-    subject_to(TypeOneErrorRate(p | pnull), α),
-    subject_to(Power(p | palt), β)
-)
+        minimise( SampleSize(p) ),
+        Power(p | pnull) <= α,
+        Power(p | palt)  >= 1 - β,
+        nmax  = 100,
+        n1max = 40
+    )
 design = optimise(problem; verbosity = 0)
+
+
 
 samplesize = SampleSize(p)
 
@@ -19,17 +23,22 @@ samplesize = SampleSize(p)
 @test all( n1(design) .≈ samplesize.(design, early_stop_region(design), .2) )
 @test all( n1(design) .≈ samplesize.(design,  early_stop_region(design)) )
 @test all( n1(design) .< samplesize.(design,  continuation_region(design)) )
-
+@test expectation( p -> sum(
+        Distributions.pdf.(Distributions.Binomial(n1(design), p), 0:n1(design)) .*
+        n.(design, 0:n1(design))
+    ),
+    p
+) ≈ samplesize(design)
 
 
 pow = problem.power.score
 
 @test 0 ≈ pow(design, 0, 0, .2)
-@test (0 .≈ pow.(design, futility_region(design), .4) ) |> all
+@test (0 .≈ pow.(design, futility_region(design), pow.bounds[1]) ) |> all
 @test (0 .≈ pow.(design, futility_region(design)) ) |> all
-@test (1 .≈ pow.(design, efficacy_region(design), .4) ) |> all
+@test (1 .≈ pow.(design, efficacy_region(design), pow.bounds[1]) ) |> all
 @test (1 .≈ pow.(design, efficacy_region(design)) ) |> all
-@test (0 .≈ pow.(design, continuation_region(design), 0)) |> all
+@test (0 .≈ pow.(design, continuation_region(design), 0.) ) |> all
 @test (0.5 .< pow.(design, continuation_region(design)) .< .99) |> all
 @test 0 ≈ pow(design, 6, .2)
 @test 0 ≈ pow(design, .2)
@@ -40,9 +49,9 @@ pow = problem.power.score
 toer = problem.toer.score
 
 @test 0 ≈ toer(design, 0, 0, .2)
-@test (0 .≈ toer.(design, futility_region(design), .1) ) |> all
+@test (0 .≈ toer.(design, futility_region(design), toer.bounds[1]) ) |> all
 @test (0 .≈ toer.(design, futility_region(design)) ) |> all
-@test (1 .≈ toer.(design, efficacy_region(design), .1) ) |> all
+@test (1 .≈ toer.(design, efficacy_region(design), toer.bounds[1]) ) |> all
 @test (1 .≈ toer.(design, efficacy_region(design)) ) |> all
 @test (0 .≈ toer.(design, continuation_region(design), 0)) |> all
 @test (0.0 .< toer.(design, continuation_region(design)) .< .99) |> all

@@ -7,9 +7,11 @@ pmcr  = .3
 p     = Beta(5, 7)
 α, β  = .05, .2
 problem = Problem(
-    minimise(SampleSize(p | (pnull + .2) )),
-    subject_to(TypeOneErrorRate(p | pnull), α),
-    subject_to(Power(p >= pmcr), β)
+    minimise(
+        SampleSize(p | (pnull + .2) )
+    ),
+    Power(p  | pnull) <= α,
+    Power(p >= pmcr)  >= 1 - β
 )
 design = optimise(problem; verbosity = 0)
 
@@ -33,10 +35,6 @@ Plots.plot(pp, hcat( sqrt.(mean_squared_error.(pp, pme2, design) ), sqrt.(mean_s
 
 
 
-
-
-
-
 mle = MaximumLikelihoodEstimator()
 rbe = RaoBlackwellEstimator()
 
@@ -48,8 +46,6 @@ x1_early_stop = early_stop_region(design)
 @test all( rbe.(𝚾[:,1], 𝚾[:,2], design) .≈ 𝚾[:,1]./n1(design) )
 @test maximum( abs.( bias.(pp, rbe, design) ) ) ≈ 0 atol = 1e-12
 @test all(0 .<= rbe.(𝚾[:,1], 𝚾[:,2], design) .<= 1)
-
-
 
 
 
@@ -82,9 +78,9 @@ resid = cmle.(𝚾[:,1], 𝚾[:,2], design) .- mle.(𝚾[:,1], 𝚾[:,2], design
 α, β = .05, .2
 
 get_design(p_sample_size, pnull, palt) = Problem(
-        minimise(SampleSize(p | p_sample_size)),
-        subject_to(TypeOneErrorRate(p | pnull), α),
-        subject_to(Power(p >= palt), β);
+        minimise( SampleSize(p | p_sample_size) ),
+        Power(p  | pnull) <= α,
+        Power(p >= palt)  >= 1 - β;
         maxmultipleonestage = 2.5
     ) |> problem -> optimise(problem; verbosity = 0)
 

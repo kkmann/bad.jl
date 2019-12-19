@@ -17,15 +17,17 @@ function optimal_design(pnull, palt)
     essnull = SampleSize(p | pnull)
     problem = Problem(
         minimise(essnull),
-        subject_to(TypeOneErrorRate(p | pnull), α, (-.1, 1.1) ),
-        subject_to(Power(p | palt), β, (-.1, 1.1) ),
-        nmax                    = convert(Int, ceil(1.5*maximum(n(simonsdesign)))),
-        n1values                = convert(Vector{Int}, floor(.5*n1(simonsdesign)):ceil(1.5*n1(simonsdesign))),
+        (Power(p | pnull) <= α) |>
+            cnstr -> conditional(cnstr, (-.1, 1.1) ),
+        (Power(p | palt) >= 1 - β) |>
+            cnstr -> conditional(cnstr, (-.1, 1.1) ),
+        nmax                     = convert(Int, ceil(1.5*maximum(n(simonsdesign)))),
+        n1values                 = convert(Vector{Int}, floor(.5*n1(simonsdesign)):ceil(1.5*n1(simonsdesign))),
         # relax all other heuristics
-        n2ton1fctrs             = (0.0, 10.0),
-        n2mincontinueabs        = 5,
+        n2ton1fctrs              = (0.0, 10.0),
+        n2mincontinueabs         = 5,
         curtail_stage_one_buffer = 5,
-        type                    = :GroupSequential
+        type                     = :GroupSequential
     )
     design = optimise(problem; verbosity = 0)
     return design, problem, size(problem)

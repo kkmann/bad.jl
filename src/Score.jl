@@ -124,51 +124,21 @@ update(score::SampleSize, prior::Prior) = SampleSize(prior)
 
 mutable struct Power{TP<:Prior,TR<:Real} <: Score
     prior::TP
-    pmcr::TR
-    Power{TP,TR}(prior::TP, pmcr::TR) where{TP<:Prior,TR<:Real} = new(pmcr <= prior, pmcr)
+    bounds::Tuple{TR,TR}
+    Power{TP,TR}(prior::TP, bounds::Tuple{TR,TR}) where{TP<:Prior,TR<:Real} = new(condition(prior; low = bounds[1], high = bounds[2]), bounds)
 end
-Power(prior::Prior; pmcr::Real = bounds(prior)[1]) = Power{typeof(prior),typeof(pmcr)}(prior, pmcr)
+Power(prior::Prior; bounds::Tuple{Real,Real} = Tuple(bounds(prior))) = Power{typeof(prior),eltype(bounds)}(prior, bounds)
 Base.string(score::Power) = @sprintf "Power<%s>" string(score.prior)
 
-update(score::Power, prior::Prior) = Power(prior; pmcr = score.pmcr)
+update(score::Power, prior::Prior) = Power(prior; bounds = score.bounds)
 
 function evaluate(score::Power, x1::TI, n1::TI, x2::TI, n2::TI, c2::TR, p::TR)::TR where {TI<:Integer,TR<:Real}
-    (p >= score.pmcr) ? (x2 > c2) : 0.0
+    (score.bounds[1] <= p <= score.bounds[2]) ? (x2 > c2) : 0.0
 end
 
 # since we integrate power, it is easier to do that in one wash, also
 # closed form cdf is available, note that the score prior is already properly conditioned
 function integrand_x1(score::Power, x1::TI, n1::TI, n2::TI, c2::TR; partial_stage_one::Tuple{TI,TI} = (0, 0) ) where {TS<:Score,TI<:Integer,TR<:Real}
-
-    expectation( # conditional expected power
-        p -> 1 - cdf(c2, n2, p),
-        update(score.prior, x1, n1)
-    ) * pmf( # conditional pmf given partial observations
-        x1, n1, score.prior; partial = partial_stage_one
-    )
-end
-
-
-
-
-
-mutable struct TypeOneErrorRate{TP<:Prior,TR<:Real} <: Score
-    prior::TP
-    pnull::TR
-    TypeOneErrorRate{TP,TR}(prior::TP, pnull::TR) where{TP<:Prior,TR<:Real} = new(prior <= pnull, pnull)
-end
-TypeOneErrorRate(prior::Prior; pnull::Real = bounds(prior)[2]) = TypeOneErrorRate{typeof(prior),typeof(pnull)}(prior, pnull)
-Base.string(score::TypeOneErrorRate) = @sprintf "TypeOneErrorRate<%s>" string(score.prior)
-
-update(score::TypeOneErrorRate, prior::Prior) = TypeOneErrorRate(prior; pnull = score.pnull)
-
-function evaluate(score::TypeOneErrorRate, x1::TI, n1::TI, x2::TI, n2::TI, c2::TR, p::TR)::TR where {TI<:Integer,TR<:Real}
-    (p <= score.pnull) ? (x2 > c2) : 0.0
-end
-
-# since we integrate power, it is easier to do that in one wash, also
-# closed form cdf is available, note that the score prior is already properly conditioned
-function integrand_x1(score::TypeOneErrorRate, x1::TI, n1::TI, n2::TI, c2::TR; partial_stage_one::Tuple{TI,TI} = (0, 0) ) where {TS<:Score,TI<:Integer,TR<:Real}
 
     expectation( # conditional expected power
         p -> 1 - cdf(c2, n2, p),

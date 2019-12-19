@@ -7,9 +7,9 @@ pmcr  = .4
 p     = Beta(6, 5)
 α, β  = .05, .2
 problem = Problem(
-    minimise(SampleSize(p)),
-    subject_to(TypeOneErrorRate(p | pnull), α),
-    subject_to(Power(p >= pmcr), β)
+    minimise( SampleSize(p) ),
+    Power(p  | pnull) <= α,
+    Power(p >= pmcr)  >= 1 - β
 )
 design = optimise(problem; verbosity = 0)
 

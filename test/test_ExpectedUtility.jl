@@ -12,35 +12,30 @@ prior  = prior3 <= min(2*pmcr, 1.0) # restrict to plausible range
 p = 0:.01:1
 Plots.plot(p, pdf.(p, prior), ylim = [0, 5])
 
-# define maximum and average type one error rates and power
-mtoer  = TypeOneErrorRate(prior | pnull)
-avtoer = TypeOneErrorRate(prior <= pnull)
-
-# define power
-power = Power(prior >= pmcr)
-
 # probability of succes is simply power * Pr[ p >= pmcr ]
-pos   =  (1 - cdf(pmcr, prior)) * power
+pos   =  (1 - cdf(pmcr, prior)) * Power(prior >= pmcr)
 # probability of an type one error is avtoer * Pr [p <= pnull ]
-potoe = cdf(pnull, prior) * avtoer
+potoe = cdf(pnull, prior) * Power(prior <= pnull)
 # finally, expected sample size is the usual
 ess   = SampleSize(prior)
 # overall utility is then goverend by two factors, both on the scale of the
 # average per-patient costs in phase II
 var"cost failed phase III" = 12000.
-var"risk weighted profit of successful phaseIII" = 100.
-utility = -var"cost failed phase III"*potoe + var"risk weighted profit of successful phaseIII"*pos - ess
+var"risk weighted profit of successful phaseIII" = 200.
+utility = -var"cost failed phase III"*potoe +
+    var"risk weighted profit of successful phaseIII"*pos -
+    ess
 
 # first consider the 'standard design'
 α, β = .05, .2
 problem = Problem(
     minimise(ess),
-    subject_to(mtoer, α),
-    subject_to(power, β)
+    Power(prior  | pnull) <= α,
+    Power(prior >= pmcr)  >= 1 - β
 )
 
 design = optimise(problem; verbosity = 0)
-power(design), mtoer(design), ess(design), utility(design)
+Power(prior >= pmcr)(design), Power(prior | pnull)(design), ess(design), utility(design)
 
 # now, lets relax the power and type one error rate constraints and maximise
 # utility instead! Note that we need to manually increase the marginal
@@ -48,12 +43,12 @@ power(design), mtoer(design), ess(design), utility(design)
 # now favouring small designs
 uproblem = Problem(
     maximise(utility),
-    subject_to(mtoer, 4*α),
-    subject_to(power, 2*β),
+    Power(prior  | pnull) <= 4*α,
+    Power(prior >= pmcr)  >= 1 - 2*β,
     n1values = 5:35,
-    nmax = 100
+    nmax     = 100
 )
 udesign = optimise(uproblem; verbosity = 0)
-power(udesign), mtoer(udesign), ess(udesign), utility(udesign)
+Power(prior >= pmcr)(udesign), Power(prior | pnull)(udesign), ess(udesign), utility(udesign)
 
 @test utility(udesign) > utility(design)

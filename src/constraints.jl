@@ -18,19 +18,24 @@ function update(cnstr::Constraint, prior::Prior)
     return cnstr
 end
 
+function conditional(cnstr::Constraint, bounds::Tuple{Real,Real})
+    cnstr = deepcopy(cnstr)
+    cnstr.conditional = bounds
+    return cnstr
+end
+
 
 mutable struct PowerConstraint <: Constraint
     score::Power
     β::Real
     conditional::Tuple{Real,Real}
 end
-function subject_to(power::Power, β::Real, conditional::Tuple{Real,Real} = (.5, .99) )
-    PowerConstraint(power, β, conditional)
-end
+
+>=(power::Power, threshold::Real) = PowerConstraint(power, 1 - threshold, (.5, .99))
 
 function Base.string(cnstr::PowerConstraint)
 
-    return @sprintf "%s >= %5.1f%%" string(cnstr.score) 100*(1 - cnstr.β)
+    return @sprintf "%s >= %5.1f%% (given x1: %5.1f%% - %5.1f%%)" string(cnstr.score) 100*(1 - cnstr.β) 100*cnstr.conditional[1] 100*cnstr.conditional[2]
 end
 
 
@@ -39,15 +44,14 @@ end
 
 
 mutable struct TypeOneErrorRateConstraint <: Constraint
-    score::TypeOneErrorRate
+    score::Power
     α::Real
     conditional::Tuple{Real,Real}
 end
-function subject_to(toer::TypeOneErrorRate, α::Real, conditional::Tuple{Real,Real} = (α/5, 5*α) )
-    TypeOneErrorRateConstraint(toer, α, conditional)
-end
+
+<=(power::Power, threshold::Real) = TypeOneErrorRateConstraint(power, threshold, (.001, .99))
 
 function Base.string(cnstr::TypeOneErrorRateConstraint)
 
-    return @sprintf "%s <= %5.1f%%" string(cnstr.score) 100*cnstr.α
+    return @sprintf "%s <= %5.1f%% (given x1: %5.1f%% - %5.1f%%)" string(cnstr.score) 100*cnstr.α 100*cnstr.conditional[1] 100*cnstr.conditional[2]
 end

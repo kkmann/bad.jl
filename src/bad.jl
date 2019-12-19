@@ -20,10 +20,12 @@ GLPK.jl_set_preemptive_check(false) # faster!
 
 import DataFrames
 
+import Statistics.mean
+
 
 
 include("priors/Prior.jl")
-export is_proper, condition, update, pdf, cdf, mean, expectation
+export is_proper, condition, update, pdf, cdf, mean, expectation, bounds
 
 include("util.jl")
 export valid
@@ -113,7 +115,7 @@ include("objectives/MiniMaxSampleSize.jl")
 export MiniMaxSampleSize
 
 include("constraints.jl")
-export PowerConstraint, TypeOneErrorRateConstraint, subject_to
+export PowerConstraint, TypeOneErrorRateConstraint, conditional
 
 
 

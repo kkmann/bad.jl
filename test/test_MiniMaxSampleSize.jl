@@ -11,9 +11,6 @@ function simon(r1::Int, n1::Int, r::Int, n::Int)
     cc = repeat([Inf], n1 + 1)
     cc[(r1 + 2):end] .= r
     cc2 = cc .- collect(0:n1)
-    # cc2[cc2 .< 0]     .= -Inf
-    # cc2[cc2 .>= nn2]  .= Inf
-    # nn2[cc2 .== -Inf] .= 0
     Design(nn2, cc2)
 end
 
@@ -29,8 +26,8 @@ essnull      = SampleSize(p | pnull)
 
 problem = Problem(
         MiniMaxSampleSize(.2, p | pnull),
-        subject_to(TypeOneErrorRate(p | pnull), α, (-.1, .5) ),
-        subject_to(Power(p | palt), β, (.5, 1.1) );
+        Power(p | pnull) <= α,
+        Power(p | palt)  >= 1 - β;
         # again, just removing as many as possible heuristics from the marginal fesible space
         n1values = collect(10:35),
         nmax = 35,
@@ -38,7 +35,6 @@ problem = Problem(
         n2ton1fctrs      = (.9, 5.0),
         curtail_stage_one_buffer = 5
     )
-size(problem)
 design = optimise(problem; verbosity = 0)
 
 # show that its actually better than the group sequential one ;)

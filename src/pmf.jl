@@ -45,21 +45,3 @@ function cdf(x::TR, n::TI, p::TP; partial::Tuple{TI,TI} = (0, 0)) where {TI<:Int
         update(p, partial[1], partial[2])
     )
 end
-
-
-
-# # joint x1/x2
-# function pmf(x1::TI, n1::TI, x2::TI, n2::TI, p::TR; x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TR<:Real}
-#     return pmf(x2, n2, p; xpartial = 0, npartial = 0) * pmf(x1, n1, p; xpartial = x1partial, npartial = n1partial)
-# end
-#
-# function pmf(x1::TI, n1::TI, x2::TI, n2::TI, p::TP; x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TP<:bad.Prior}
-#     expectation(
-#         p -> pmf(x1, n1, x2, n2, p; x1partial = x1partial, n1partial = n1partial),
-#         update(p, x1partial, n1partial)
-#     )
-# end
-#
-# function pmf(x1::TI, x2::TI, design::TD, p::Union{TR,TP}; x1partial::TI = 0, n1partial::TI = 0) where {TI<:Integer,TR<:Real,TP<:bad.Prior,TD<:bad.AbstractDesign}
-#     pmf(x1, n1(design), x2, n2(design, x1), p; x1partial = x1partial, n1partial = n1partial)
-# end
