@@ -27,17 +27,28 @@ obs = 0, 0
 α_new = mtoer(design; partial_stage_one = obs )
 β_new = 1 - power(design; partial_stage_one = obs )
 
-adesign = adapt(design, prior, obs)
+xx1, nn2, cc2 = adapt(design, prior, obs)
+adesign = Design(
+    vcat(design.n2[1:obs[1]], nn2),
+    vcat(design.c2[1:obs[1]], cc2)
+)
+
 @test all(adesign.n2 .== design.n2)
 @test all(adesign.c2 .== design.c2)
 @test power(design) ≈ power(adesign; partial_stage_one = obs)
 @test mtoer(design) ≈ mtoer(adesign; partial_stage_one = obs)
 @test ess(design)   ≈ ess(adesign; partial_stage_one = obs)
 
+
+
 obs   = 5, 10
 α_new = mtoer(design; partial_stage_one = obs )
 β_new = 1 - power(design; partial_stage_one = obs )
-adesign = adapt(design, prior, obs)
+xx1, nn2, cc2 = adapt(design, prior, obs)
+adesign = Design(
+    vcat(design.n2[1:obs[1]], nn2),
+    vcat(design.c2[1:obs[1]], cc2)
+)
 
 @test power(adesign; partial_stage_one = obs) >= 1 - β_new
 @test mtoer(adesign; partial_stage_one = obs) <= α_new
@@ -46,6 +57,10 @@ adesign = adapt(design, prior, obs)
 
 
 prior2  = update(prior, 6, 10)
-adesign = adapt(design, prior2, obs)
+xx1, nn2, cc2 = adapt(design, prior2, obs)
+adesign = Design(
+    vcat(design.n2[1:obs[1]], nn2),
+    vcat(design.c2[1:obs[1]], cc2)
+)
 @test Power(prior2 >= pmcr)(adesign; partial_stage_one = obs) >= 1 - β_new
 @test Power(prior2 | pnull)(adesign; partial_stage_one = obs) <= α_new

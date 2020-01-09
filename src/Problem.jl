@@ -375,21 +375,8 @@ function adapt(design::OptimalDesign, prior::TP, partial::Tuple{TI,TI};
             unimodal              = unimodal
         )
 
-        info = Dict{String,Any}()
-        _, info["model build time [s]"], _, _, _ = @timed begin
-            m, ind, n1_selected = build_model(adaptation_problem; verbose = verbosity > 0)
-        end
-        _, info["model ILP solution time [s]"], _, _, _ = @timed begin
-            optimise!(m, verbosity, timelimit)
-        end
-        _, info["solution extraction time [s]"], _, _, _ = @timed begin
-            xx1, nn2, cc2 = extract_solution(adaptation_problem, ind, n1_selected)
-        end
-        info["total time [s]"] = sum([val for (key, val) in info])
-        info["number of variables"] = size(adaptation_problem)
-        adapted_design = Design(
-            vcat(design.n2[1:partial[1]], nn2),
-            vcat(design.c2[1:partial[1]], cc2)
-        )
-        return adapted_design
+        m, ind, n1_selected = build_model(adaptation_problem; verbose = verbosity > 0)
+        optimise!(m, verbosity, timelimit)
+        xx1, nn2, cc2 = extract_solution(adaptation_problem, ind, n1_selected)
+        return xx1, nn2, cc2
 end
