@@ -1,4 +1,4 @@
-using Test, bad; import Plots
+using Test, bad
 
 # construct the usual prior
 pnull  = .2 # response under TAU
@@ -64,3 +64,8 @@ adesign = Design(
 )
 @test Power(prior2 >= pmcr)(adesign; partial_stage_one = obs) >= 1 - β_new
 @test Power(prior2 | pnull)(adesign; partial_stage_one = obs) <= α_new
+
+obs = 7, 25
+tmp1 = design.problem.toer.score(design, 5, partial_stage_two = (2, 6))
+tmp2 = 1 - design.problem.power.score(design, 5, partial_stage_two = (2, 6))
+xx1, nn2, cc2 = adapt(design, prior, (7, 25), α = tmp1, β = tmp2)
