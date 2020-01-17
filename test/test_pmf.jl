@@ -1,7 +1,6 @@
 using Test, bad
 
 import Distributions
-import Plots
 
 
 

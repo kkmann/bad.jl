@@ -1,4 +1,4 @@
-using Test, bad; import Plots
+using Test, bad
 
 # get curtailed simons design (implied stopping for efficacy!)
 function simon(r1::Int, n1::Int, r::Int, n::Int)

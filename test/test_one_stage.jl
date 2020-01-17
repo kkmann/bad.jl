@@ -1,4 +1,4 @@
-using Test, bad; import Plots
+using Test, bad
 
 
 α, β        = 0.05, .2

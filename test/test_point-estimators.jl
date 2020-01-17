@@ -1,4 +1,4 @@
-using Test, bad; import Plots
+using Test, bad
 
 
 
@@ -28,10 +28,6 @@ pme3 = PosteriorMean(JeffreysPrior(design))
 pme4 = PosteriorMeanPrecalculated(JeffreysPrior(design), design)
 @test all( pme3.(𝚾[:,1], 𝚾[:,2], design) ≈ pme4.(𝚾[:,1], 𝚾[:,2], design) )
 
-pp   = 0:.01:1
-Plots.plot(pp, hcat( bias.(pp, pme2, design), bias.(pp, pme4, design) ))
-Plots.plot(pp, hcat( sqrt.(mean_squared_error.(pp, pme2, design) ), sqrt.(mean_squared_error.(pp, pme4, design) ) ))
-
 
 
 
@@ -39,7 +35,7 @@ mle = MaximumLikelihoodEstimator()
 rbe = RaoBlackwellEstimator()
 
 x1_early_stop = early_stop_region(design)
-
+pp = 0:.01:1
 @test all( mle.(x1_early_stop, 0, design) .== rbe.(x1_early_stop, 0, design) )
 # design is injective on continuation region, rbe = x1/n1?
 # allow numerical inaccuracy for rbe!

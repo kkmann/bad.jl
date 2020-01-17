@@ -1,4 +1,4 @@
-using Test, bad; import Plots
+using Test, bad
 
 # construct the usual prior
 pnull  = .2 # response under TAU
@@ -8,9 +8,7 @@ prior2 = update(prior1, 4, 10)      # update with phase I data
 prior3 = .8*prior2 + .2*Beta(1, 1)  # robustify
 prior  = prior3 <= min(2*pmcr, 1.0) # restrict to plausible range
 
-# plot
 p = 0:.01:1
-Plots.plot(p, pdf.(p, prior), ylim = [0, 5])
 
 # probability of succes is simply power * Pr[ p >= pmcr ]
 pos   =  (1 - cdf(pmcr, prior)) * Power(prior >= pmcr)

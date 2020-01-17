@@ -1,4 +1,4 @@
-using Test, bad; import Plots, Distributions
+using Test, bad; import Distributions
 
 
 pnull = .25

@@ -1,4 +1,4 @@
-using Test, bad; import Plots
+using Test, bad
 
 
 prior1 = Beta(mean = .4, sd = .1)
