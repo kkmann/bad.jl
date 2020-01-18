@@ -14,6 +14,9 @@ using Test, bad
 @info "testing point estimators..."
 @time include("test_point-estimators.jl")
 
+@info "testing p-values..."
+@time include("test_p-values.jl")
+
 @info "testing interval estimators..."
 @time include("test_intervals.jl")
 

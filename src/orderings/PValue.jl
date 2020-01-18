@@ -34,15 +34,15 @@ end
 
 
 function (pval::PValue{TI,TR,TO,TD})(x1::TI, x2::TI) where {TI<:Integer,TR<:Real,TO<:Ordering,TD<:AbstractDesign}
-    for i in 1:size(pval.ordered_sample_space, 1)
-        if [x1, x2] == pval.ordered_sample_space[i,:]
-            return min(1, max(0, sum(
-                pmf.(pval.ordered_sample_space[i:end, 2], n2.(pval.design,pval.ordered_sample_space[i:end, 1]), pval.p0) .*
-                pmf.(pval.ordered_sample_space[i:end, 1], n1(pval.design), pval.p0)
-            ) ) )
-        end
-    end
-    error("(x1,x2) not found in sample space, valid observation?")
+
+    XX     = pval.ordered_sample_space
+    design = pval.design
+    p0     = pval.p0
+    inds   = more_extreme.(XX[:,1], XX[:,2], x1, x2, pval.ordering, design)
+    return min(1, max(0, sum(
+        pmf.(XX[inds,2], n2.(design, XX[inds,1]), p0) .*
+        pmf.(XX[inds,1], n1(design), p0)
+    ) ) )
 end
 
 evaluate(pval::PValue{TI,TR,TO,TD}, x1::TI, x2::TI) where {TI<:Integer,TR<:Real,TO<:Ordering,TD<:AbstractDesign} = pval(x1, x2)
