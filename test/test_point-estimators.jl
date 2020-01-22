@@ -86,7 +86,7 @@ for (pnull, palt) in [(pnull, pnull + .2) for pnull in 0.1:.1:.7]
 
     for psamplesize in (pnull, palt)
         design = get_design(psamplesize, pnull, palt)
-        cmle   = CompatibleMLE(design; λ = .25)
+        cmle   = CompatibleMLE(design; lambda = .25)
         if !compatible(EstimatorOrdering(cmle), design, pnull, α)["compatible"]
             global tmp = design, pnull, palt, psamplesize
         end

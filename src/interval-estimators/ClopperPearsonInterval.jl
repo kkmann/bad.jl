@@ -8,8 +8,9 @@ end
 
 string(ci::ClopperPearsonInterval) = @sprintf "ClopperPearsonInterval<%s>" string(ci.ordering)
 
-function ClopperPearsonInterval(ordering::Ordering, design::AbstractDesign, α::Real; ϵ = 1e-6)
+function ClopperPearsonInterval(ordering::Ordering, design::AbstractDesign, α::Real; epsilon = 1e-6)
 
+    ϵ = epsilon
     XX = sample_space(design)
     nn = size(XX, 1)
 
