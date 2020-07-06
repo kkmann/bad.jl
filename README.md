@@ -5,3 +5,7 @@
 
 
 # bad.jl
+
+This [julia](https://julialang.org/) package implements the core functionality 
+for the [R](https://www.r-project.org/) package [badr](https://github.com/kkmann/badr). 
+See the [documentation of badr](???) for more details.
