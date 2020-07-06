@@ -42,11 +42,11 @@ function CompatibleMLE(design::TD; verbosity = 0,  lambda = .5, epsilon = 1e-4, 
     end
     # set up JuMP model
     m = Model(
-        with_optimizer(Ipopt.Optimizer,
-            max_iter                         = max_iter,
-            constr_viol_tol                  = ϵ/100,
-            acceptable_constr_viol_tol       = ϵ/100,
-            print_level                      = verbosity
+        optimizer_with_attributes(Ipopt.Optimizer,
+                              "max_iter" => max_iter,
+                       "constr_viol_tol" => ϵ/100,
+            "acceptable_constr_viol_tol" => ϵ/100,
+                           "print_level" => verbosity
         )
     )
     # define all variables upfront, start with estimates

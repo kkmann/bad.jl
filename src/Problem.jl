@@ -252,11 +252,14 @@ end
 
 
 function optimise!(m, verbosity::Integer, timelimit::Integer)
-
-    optimize!(
+    set_optimizer(
         m,
-        with_optimizer(GLPK.Optimizer, msg_lev = verbosity, tm_lim = 1000*timelimit)
+        optimizer_with_attributes(GLPK.Optimizer,
+            "msg_lev" => verbosity,
+             "tm_lim" => 1000*timelimit
+        )
     )
+    optimize!(m)
     # termination_status(model.jump_model)
 end
 
