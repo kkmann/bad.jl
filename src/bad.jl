@@ -16,7 +16,6 @@ import QuadGK.quadgk, QuadGK.gauss
 import Roots
 
 using JuMP, GLPK, Ipopt
-GLPK.jl_set_preemptive_check(false) # faster!
 
 import DataFrames
 
